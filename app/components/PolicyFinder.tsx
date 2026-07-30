@@ -180,6 +180,14 @@ function RecommendationCard({
       >
         공식 사이트에서 확인하기 <span aria-hidden="true">↗</span>
       </a>
+      <a
+        className="report-link"
+        href={`https://github.com/jinfire/find-policy-gpt/issues/new?title=${encodeURIComponent(`[정책 오류] ${policy.officialName}`)}&body=${encodeURIComponent(`정책 ID: ${policy.id}\n확인한 내용:\n`)}`}
+        target="_blank"
+        rel="noreferrer"
+      >
+        정보가 다르다면 알려주세요
+      </a>
     </article>
   );
 }
