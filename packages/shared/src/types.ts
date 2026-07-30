@@ -60,3 +60,60 @@ export type DerivedProfile = UserProfile & {
   householdIncomeAnnual?: number;
   householdSize: number;
 };
+
+export type TruthValue = true | false | "unknown";
+
+export type ConditionOperator =
+  | "eq"
+  | "neq"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "in"
+  | "not_in"
+  | "contains"
+  | "between"
+  | "date_before"
+  | "date_after"
+  | "exists"
+  | "not_exists";
+
+export type ConditionLeaf = {
+  field: string;
+  label: string;
+  op: ConditionOperator;
+  value?: unknown;
+  reason?: string;
+  failureReason?: string;
+  question?: string;
+  sourceId?: string;
+};
+
+export type ConditionNode =
+  | ConditionLeaf
+  | { all: ConditionNode[] }
+  | { any: ConditionNode[] }
+  | { not: ConditionNode };
+
+export type ConditionDetail = {
+  field: string;
+  label: string;
+  value: TruthValue;
+  message: string;
+  question?: string;
+  sourceId?: string;
+};
+
+export type PolicyMatchStatus = "eligible" | "needs_review" | "unlikely";
+
+export type PolicyMatchResult = {
+  policyId: string;
+  policyVersionId: string;
+  status: PolicyMatchStatus;
+  recommendationReasons: string[];
+  matched: ConditionDetail[];
+  unmatched: ConditionDetail[];
+  unknown: ConditionDetail[];
+  disclaimer: string;
+};
