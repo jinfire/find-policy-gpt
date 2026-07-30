@@ -245,6 +245,19 @@ function publicDetail(detail: InternalDetail): ConditionDetail {
   };
 }
 
+function uniqueDetails(details: InternalDetail[]): ConditionDetail[] {
+  const seen = new Set<string>();
+  return details.flatMap((detail) => {
+    const key =
+      detail.value === "unknown"
+        ? `${detail.field}|${detail.question ?? detail.message}`
+        : `${detail.field}|${detail.message}`;
+    if (seen.has(key)) return [];
+    seen.add(key);
+    return [publicDetail(detail)];
+  });
+}
+
 export function matchPolicy({
   policyId,
   policyVersionId,
@@ -259,15 +272,15 @@ export function matchPolicy({
   disclaimer?: string;
 }): PolicyMatchResult {
   const evaluation = evaluateCondition(rule, profile);
-  const matched = evaluation.details
-    .filter((detail) => detail.value === true)
-    .map(publicDetail);
-  const unmatched = evaluation.details
-    .filter((detail) => detail.value === false)
-    .map(publicDetail);
-  const unknown = evaluation.details
-    .filter((detail) => detail.value === "unknown")
-    .map(publicDetail);
+  const matched = uniqueDetails(
+    evaluation.details.filter((detail) => detail.value === true),
+  );
+  const unmatched = uniqueDetails(
+    evaluation.details.filter((detail) => detail.value === false),
+  );
+  const unknown = uniqueDetails(
+    evaluation.details.filter((detail) => detail.value === "unknown"),
+  );
 
   return {
     policyId,

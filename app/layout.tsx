@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Starter Project",
-  description: "A clean starting point for building your site.",
+  title: "혜택나침반",
+  description: "내 상황에 맞는 정부 혜택과 추천 이유를 한 번에 확인하세요.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
@@ -27,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ko">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
