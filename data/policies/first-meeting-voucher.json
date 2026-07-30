@@ -1,0 +1,19 @@
+{
+  "id": "first-meeting-voucher",
+  "slug": "first-meeting-voucher",
+  "versionId": "first-meeting-voucher-2026-01",
+  "officialName": "첫만남이용권",
+  "summary": "출생아에게 첫 양육비용을 국민행복카드 바우처로 지원합니다.",
+  "policyType": "voucher",
+  "providerName": "보건복지부",
+  "catalogLevel": "rule_ready",
+  "effectiveFrom": "2026-01-01",
+  "effectiveTo": null,
+  "eligibilityRule": { "all": [
+    { "field": "youngestChildAgeMonths", "label": "출생 후 2년 이내", "op": "lte", "value": 23, "reason": "출생 후 2년이 지나지 않은 자녀가 있습니다.", "question": "가장 어린 자녀의 생년월일은 언제인가요?", "sourceId": "bokjiro-first-meeting" },
+    { "field": "youngestChildResidentRegistered", "label": "출생신고 및 주민등록", "op": "eq", "value": true, "reason": "자녀가 출생신고되어 주민등록번호를 부여받았습니다.", "question": "해당 자녀는 출생신고와 주민등록이 완료됐나요?", "sourceId": "bokjiro-first-meeting" }
+  ]},
+  "benefitSummary": "첫째 200만 원, 둘째 이상 300만 원 상당의 1회 바우처",
+  "application": { "officialUrl": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00004656&wlfareInfoReldBztpCd=01", "channels": ["복지로", "정부24", "읍면동 행정복지센터"], "confirmationRequired": true },
+  "sources": [{ "id": "bokjiro-first-meeting", "title": "첫만남이용권", "publisher": "복지로", "url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00004656&wlfareInfoReldBztpCd=01", "verifiedAt": "2026-07-30", "isPrimary": true }]
+}

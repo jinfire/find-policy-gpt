@@ -1,0 +1,23 @@
+{
+  "id": "beotimmok-jeonse",
+  "slug": "beotimmok-jeonse",
+  "versionId": "beotimmok-jeonse-2026-01",
+  "officialName": "버팀목전세자금",
+  "summary": "무주택 세대주의 주택 전세자금을 지원합니다.",
+  "policyType": "loan",
+  "providerName": "주택도시기금",
+  "catalogLevel": "rule_ready",
+  "effectiveFrom": "2026-01-01",
+  "effectiveTo": null,
+  "eligibilityRule": { "all": [
+    { "field": "isHouseholdHead", "label": "세대주 또는 예비 세대주", "op": "eq", "value": true, "reason": "세대주 조건을 충족한다고 입력했습니다.", "question": "현재 세대주이거나 대출 실행 전 세대주가 될 예정인가요?", "sourceId": "nhuf-beotimmok" },
+    { "field": "householdHomeCount", "label": "세대원 전원 무주택", "op": "eq", "value": 0, "reason": "세대원 전원이 무주택이라고 입력했습니다.", "question": "본인과 세대원이 소유한 주택은 모두 몇 채인가요?", "sourceId": "nhuf-beotimmok" },
+    { "field": "coupleIncomeAnnual", "label": "기본 부부합산 연소득", "op": "lte", "value": 50000000, "reason": "기본 부부합산 소득 기준 이내입니다.", "question": "본인과 배우자의 연소득은 각각 얼마인가요?", "sourceId": "nhuf-beotimmok" },
+    { "field": "householdNetAssets", "label": "부부합산 순자산", "op": "lte", "value": 345000000, "reason": "2026년 순자산 기준 이내입니다.", "question": "가구 순자산은 얼마인가요?", "sourceId": "nhuf-beotimmok" },
+    { "field": "leaseContract.signed", "label": "임대차계약 체결", "op": "eq", "value": true, "reason": "주택 임대차계약을 체결했습니다.", "question": "주택 임대차계약을 체결했나요?", "sourceId": "nhuf-beotimmok" },
+    { "field": "leaseContract.depositPaidRatio", "label": "보증금 5% 이상 지급", "op": "gte", "value": 5, "reason": "임차보증금의 5% 이상을 지급했습니다.", "question": "임차보증금의 몇 %를 지급했나요?", "sourceId": "nhuf-beotimmok" }
+  ]},
+  "benefitSummary": "전세자금 정책대출(지역·가구별 보증금 및 한도는 공식 심사에서 확인)",
+  "application": { "officialUrl": "https://nhuf.molit.go.kr/FP/FP05/FP0502/FP05020101.jsp", "channels": ["기금e든든", "수탁은행"], "confirmationRequired": true },
+  "sources": [{ "id": "nhuf-beotimmok", "title": "버팀목전세자금", "publisher": "주택도시기금", "url": "https://nhuf.molit.go.kr/FP/FP05/FP0502/FP05020101.jsp", "verifiedAt": "2026-07-30", "isPrimary": true }]
+}

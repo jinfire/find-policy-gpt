@@ -1,0 +1,42 @@
+{
+  "id": "didimdol",
+  "slug": "didimdol",
+  "versionId": "didimdol-2026-01",
+  "officialName": "내집마련 디딤돌대출",
+  "summary": "무주택 서민·실수요자의 주택 구입자금을 지원합니다.",
+  "policyType": "loan",
+  "providerName": "주택도시기금",
+  "catalogLevel": "rule_ready",
+  "effectiveFrom": "2026-01-01",
+  "effectiveTo": null,
+  "eligibilityRule": { "all": [
+    { "field": "isAdult", "label": "민법상 성년", "op": "eq", "value": true, "reason": "민법상 성년입니다.", "question": "생년월일은 언제인가요?", "sourceId": "nhuf-didimdol" },
+    { "field": "isHouseholdHead", "label": "세대주", "op": "eq", "value": true, "reason": "세대주 조건을 충족한다고 입력했습니다.", "question": "현재 세대주인가요?", "sourceId": "nhuf-didimdol" },
+    { "field": "householdHomeCount", "label": "세대원 전원 무주택", "op": "eq", "value": 0, "reason": "세대원 전원이 무주택이라고 입력했습니다.", "question": "본인과 세대원이 소유한 주택은 모두 몇 채인가요?", "sourceId": "nhuf-didimdol" },
+    { "any": [
+      { "field": "coupleIncomeAnnual", "label": "기본 부부합산 연소득", "op": "lte", "value": 60000000, "reason": "기본 부부합산 소득 기준 이내입니다.", "question": "본인과 배우자의 연소득은 각각 얼마인가요?", "sourceId": "nhuf-didimdol" },
+      { "all": [
+        { "field": "isNewlywedWithin7Years", "label": "신혼가구", "op": "eq", "value": true, "reason": "혼인 7년 이내 신혼가구입니다.", "question": "혼인신고일은 언제인가요?", "sourceId": "nhuf-didimdol" },
+        { "field": "coupleIncomeAnnual", "label": "신혼가구 부부합산 연소득", "op": "lte", "value": 85000000, "reason": "신혼가구 완화 소득 기준 이내입니다.", "question": "본인과 배우자의 연소득은 각각 얼마인가요?", "sourceId": "nhuf-didimdol" }
+      ]},
+      { "all": [
+        { "field": "minorChildCount", "label": "2자녀 이상", "op": "gte", "value": 2, "reason": "미성년 자녀가 2명 이상입니다.", "question": "미성년 자녀가 몇 명인가요?", "sourceId": "nhuf-didimdol" },
+        { "field": "coupleIncomeAnnual", "label": "2자녀 가구 부부합산 연소득", "op": "lte", "value": 70000000, "reason": "2자녀 이상 가구 완화 소득 기준 이내입니다.", "question": "본인과 배우자의 연소득은 각각 얼마인가요?", "sourceId": "nhuf-didimdol" }
+      ]}
+    ]},
+    { "field": "householdNetAssets", "label": "부부합산 순자산", "op": "lte", "value": 511000000, "reason": "2026년 순자산 기준 이내입니다.", "question": "가구 순자산은 얼마인가요?", "sourceId": "nhuf-didimdol" },
+    { "any": [
+      { "field": "targetHouse.appraisedPrice", "label": "기본 대상주택 평가액", "op": "lte", "value": 500000000, "reason": "기본 대상주택 평가액 기준 이내입니다.", "question": "구입할 주택의 평가액은 얼마인가요?", "sourceId": "nhuf-didimdol" },
+      { "all": [
+        { "any": [
+          { "field": "isNewlywedWithin7Years", "label": "신혼가구", "op": "eq", "value": true, "reason": "혼인 7년 이내 신혼가구입니다.", "question": "혼인신고일은 언제인가요?", "sourceId": "nhuf-didimdol" },
+          { "field": "minorChildCount", "label": "2자녀 이상", "op": "gte", "value": 2, "reason": "미성년 자녀가 2명 이상입니다.", "question": "미성년 자녀가 몇 명인가요?", "sourceId": "nhuf-didimdol" }
+        ]},
+        { "field": "targetHouse.appraisedPrice", "label": "우대가구 대상주택 평가액", "op": "lte", "value": 600000000, "reason": "신혼·2자녀 이상 가구의 주택 평가액 기준 이내입니다.", "question": "구입할 주택의 평가액은 얼마인가요?", "sourceId": "nhuf-didimdol" }
+      ]}
+    ]}
+  ]},
+  "benefitSummary": "주택 구입자금 정책대출(가구 특성별 완화 기준과 실제 한도는 공식 심사에서 확인)",
+  "application": { "officialUrl": "https://nhuf.molit.go.kr/FP/FP05/FP0503/FP05030101.jsp", "channels": ["기금e든든", "수탁은행"], "confirmationRequired": true },
+  "sources": [{ "id": "nhuf-didimdol", "title": "내집마련 디딤돌대출", "publisher": "주택도시기금", "url": "https://nhuf.molit.go.kr/FP/FP05/FP0503/FP05030101.jsp", "verifiedAt": "2026-07-30", "isPrimary": true }]
+}

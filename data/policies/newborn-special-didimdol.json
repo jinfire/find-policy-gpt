@@ -1,0 +1,31 @@
+{
+  "id": "newborn-special-didimdol",
+  "slug": "newborn-special-didimdol",
+  "versionId": "newborn-special-didimdol-2026-01",
+  "officialName": "신생아 특례 디딤돌대출",
+  "summary": "최근 출산·입양한 무주택 가구의 주택 구입자금을 지원합니다.",
+  "policyType": "loan",
+  "providerName": "주택도시기금",
+  "catalogLevel": "rule_ready",
+  "effectiveFrom": "2026-01-01",
+  "effectiveTo": null,
+  "eligibilityRule": { "all": [
+    { "field": "isAdult", "label": "민법상 성년", "op": "eq", "value": true, "reason": "민법상 성년입니다.", "question": "생년월일은 언제인가요?", "sourceId": "nhuf-newborn-didimdol" },
+    { "field": "isHouseholdHead", "label": "세대주", "op": "eq", "value": true, "reason": "세대주 조건을 충족한다고 입력했습니다.", "question": "현재 세대주인가요?", "sourceId": "nhuf-newborn-didimdol" },
+    { "field": "hasChildBornWithin2Years", "label": "접수일 기준 2년 내 출산·입양", "op": "eq", "value": true, "reason": "최근 2년 내 출산·입양한 가구입니다.", "question": "최근 2년 내 출산하거나 입양한 자녀가 있나요?", "sourceId": "nhuf-newborn-didimdol" },
+    { "field": "householdHomeCount", "label": "세대원 전원 무주택", "op": "eq", "value": 0, "reason": "세대원 전원이 무주택이라고 입력했습니다.", "question": "본인과 세대원이 소유한 주택은 모두 몇 채인가요?", "sourceId": "nhuf-newborn-didimdol" },
+    { "any": [
+      { "field": "coupleIncomeAnnual", "label": "기본 부부합산 연소득", "op": "lte", "value": 130000000, "reason": "기본 부부합산 소득 기준 이내입니다.", "question": "본인과 배우자의 연소득은 각각 얼마인가요?", "sourceId": "nhuf-newborn-didimdol" },
+      { "all": [
+        { "field": "isDualIncome", "label": "맞벌이", "op": "eq", "value": true, "reason": "부부가 모두 소득이 있는 맞벌이 가구입니다.", "question": "본인과 배우자 모두 소득이 있나요?", "sourceId": "nhuf-newborn-didimdol" },
+        { "field": "coupleIncomeAnnual", "label": "맞벌이 합산 연소득", "op": "lte", "value": 200000000, "reason": "맞벌이 합산 소득 기준 이내입니다.", "question": "본인과 배우자의 연소득은 각각 얼마인가요?", "sourceId": "nhuf-newborn-didimdol" },
+        { "field": "applicantIncomeAnnual", "label": "신청인 연소득", "op": "lte", "value": 130000000, "reason": "신청인 개인소득 기준 이내입니다.", "question": "본인의 연소득은 얼마인가요?", "sourceId": "nhuf-newborn-didimdol" },
+        { "field": "spouseIncomeAnnual", "label": "배우자 연소득", "op": "lte", "value": 130000000, "reason": "배우자 개인소득 기준 이내입니다.", "question": "배우자의 연소득은 얼마인가요?", "sourceId": "nhuf-newborn-didimdol" }
+      ]}
+    ]},
+    { "field": "householdNetAssets", "label": "부부합산 순자산", "op": "lte", "value": 511000000, "reason": "2026년 순자산 기준 이내입니다.", "question": "가구의 부동산·금융자산에서 부채를 뺀 순자산은 얼마인가요?", "sourceId": "nhuf-newborn-didimdol" }
+  ]},
+  "benefitSummary": "주택 구입자금 정책대출(금리·한도는 공식 심사에서 확인)",
+  "application": { "officialUrl": "https://nhuf.molit.go.kr/FP/FP05/FP0503/FP05030801.jsp", "channels": ["기금e든든", "수탁은행"], "confirmationRequired": true },
+  "sources": [{ "id": "nhuf-newborn-didimdol", "title": "신생아 특례 디딤돌대출", "publisher": "주택도시기금", "url": "https://nhuf.molit.go.kr/FP/FP05/FP0503/FP05030801.jsp", "verifiedAt": "2026-07-30", "isPrimary": true }]
+}

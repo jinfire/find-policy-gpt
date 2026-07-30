@@ -59,6 +59,11 @@ export type DerivedProfile = UserProfile & {
   coupleIncomeAnnual?: number;
   householdIncomeAnnual?: number;
   householdSize: number;
+  isDualIncome?: boolean;
+  plannedMarriageWithin3Months?: boolean;
+  youngestChildNationalityStatus?: ChildProfile["nationalityStatus"];
+  youngestChildResidentRegistered?: boolean;
+  youngestChildBirthOrder?: number;
 };
 
 export type TruthValue = true | false | "unknown";

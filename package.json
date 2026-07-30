@@ -12,10 +12,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "db:seed:generate": "node scripts/generate-policy-seed.mjs"
   },
   "dependencies": {
     "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
     "drizzle-orm": "0.45.2",
     "next": "16.2.6",
     "react": "19.2.6",
@@ -32,6 +34,7 @@
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@types/sql.js": "^1.4.11",
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.26",
     "drizzle-kit": "0.31.10",
@@ -39,6 +42,7 @@
     "eslint-config-next": "16.2.6",
     "jsdom": "^26.1.0",
     "react-server-dom-webpack": "19.2.6",
+    "sql.js": "^1.14.1",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
     "vinext": "0.0.50",

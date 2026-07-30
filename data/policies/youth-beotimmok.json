@@ -1,0 +1,23 @@
+{
+  "id": "youth-beotimmok",
+  "slug": "youth-beotimmok",
+  "versionId": "youth-beotimmok-2026-01",
+  "officialName": "청년전용 버팀목전세자금",
+  "summary": "만 19~34세 무주택 청년 세대주의 전세자금을 지원합니다.",
+  "policyType": "loan",
+  "providerName": "주택도시기금",
+  "catalogLevel": "rule_ready",
+  "effectiveFrom": "2026-01-01",
+  "effectiveTo": null,
+  "eligibilityRule": { "all": [
+    { "field": "age", "label": "만 19~34세", "op": "between", "value": [19, 34], "reason": "청년전용 버팀목의 연령 범위에 해당합니다.", "question": "생년월일은 언제인가요?", "sourceId": "nhuf-youth-beotimmok" },
+    { "field": "isHouseholdHead", "label": "세대주 또는 예비 세대주", "op": "eq", "value": true, "reason": "세대주 조건을 충족한다고 입력했습니다.", "question": "현재 세대주이거나 대출 실행 전 세대주가 될 예정인가요?", "sourceId": "nhuf-youth-beotimmok" },
+    { "field": "householdHomeCount", "label": "세대원 전원 무주택", "op": "eq", "value": 0, "reason": "세대원 전원이 무주택이라고 입력했습니다.", "question": "본인과 세대원이 소유한 주택은 모두 몇 채인가요?", "sourceId": "nhuf-youth-beotimmok" },
+    { "field": "coupleIncomeAnnual", "label": "기본 부부합산 연소득", "op": "lte", "value": 50000000, "reason": "기본 부부합산 소득 기준 이내입니다.", "question": "본인과 배우자의 연소득은 각각 얼마인가요?", "sourceId": "nhuf-youth-beotimmok" },
+    { "field": "householdNetAssets", "label": "부부합산 순자산", "op": "lte", "value": 345000000, "reason": "2026년 순자산 기준 이내입니다.", "question": "가구 순자산은 얼마인가요?", "sourceId": "nhuf-youth-beotimmok" },
+    { "field": "leaseContract.deposit", "label": "임차보증금", "op": "lte", "value": 300000000, "reason": "임차보증금 기준 이내입니다.", "question": "임차보증금은 얼마인가요?", "sourceId": "nhuf-youth-beotimmok" }
+  ]},
+  "benefitSummary": "청년 전세자금 정책대출(실제 금리·한도는 공식 심사에서 확인)",
+  "application": { "officialUrl": "https://nhuf.molit.go.kr/FP/FP05/FP0502/FP05020301.jsp", "channels": ["기금e든든", "수탁은행"], "confirmationRequired": true },
+  "sources": [{ "id": "nhuf-youth-beotimmok", "title": "청년전용 버팀목전세자금", "publisher": "주택도시기금", "url": "https://nhuf.molit.go.kr/FP/FP05/FP0502/FP05020301.jsp", "verifiedAt": "2026-07-30", "isPrimary": true }]
+}

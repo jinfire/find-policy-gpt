@@ -1,0 +1,23 @@
+{
+  "id": "bogeumjari",
+  "slug": "bogeumjari",
+  "versionId": "bogeumjari-2026-01",
+  "officialName": "보금자리론",
+  "summary": "실수요자의 주택 구입·보전·상환 목적 장기 고정금리 대출입니다.",
+  "policyType": "loan",
+  "providerName": "한국주택금융공사",
+  "catalogLevel": "rule_ready",
+  "effectiveFrom": "2026-01-01",
+  "effectiveTo": null,
+  "eligibilityRule": { "all": [
+    { "field": "isAdult", "label": "민법상 성년", "op": "eq", "value": true, "reason": "민법상 성년입니다.", "question": "생년월일은 언제인가요?", "sourceId": "hf-bogeumjari" },
+    { "field": "nationalityStatus", "label": "대한민국 국민", "op": "in", "value": ["korean", "overseas_korean"], "reason": "보금자리론의 국적 범위에 해당합니다.", "question": "국적 상태를 알려주세요.", "sourceId": "hf-bogeumjari" },
+    { "field": "creditScore", "label": "CB점수", "op": "gte", "value": 271, "reason": "공개된 최소 CB점수 기준 이상입니다.", "question": "현재 확인 가능한 CB 신용점수는 몇 점인가요?", "sourceId": "hf-bogeumjari" },
+    { "field": "householdHomeCountExcludingTarget", "label": "담보주택 외 주택 수", "op": "lte", "value": 1, "reason": "담보주택 외 주택 수 기준 범위입니다.", "question": "대상주택을 제외하고 가구가 보유한 주택은 몇 채인가요?", "sourceId": "hf-bogeumjari" },
+    { "field": "coupleIncomeAnnual", "label": "기본 부부합산 연소득", "op": "lte", "value": 70000000, "reason": "기본 부부합산 소득 기준 이내입니다.", "question": "본인과 배우자의 연소득은 각각 얼마인가요?", "sourceId": "hf-bogeumjari" },
+    { "field": "targetHouse.appraisedPrice", "label": "주택가격", "op": "lte", "value": 600000000, "reason": "공개된 주택가격 기준 이내입니다.", "question": "대상주택의 가격은 얼마인가요?", "sourceId": "hf-bogeumjari" }
+  ]},
+  "benefitSummary": "장기 고정금리 주택담보대출(실제 금리·LTV·DTI·한도는 공식 심사에서 확인)",
+  "application": { "officialUrl": "https://www.hf.go.kr/ko/sub01/sub01_01_01.do", "channels": ["한국주택금융공사 인터넷금융서비스", "취급 금융기관"], "confirmationRequired": true },
+  "sources": [{ "id": "hf-bogeumjari", "title": "보금자리론", "publisher": "한국주택금융공사", "url": "https://www.hf.go.kr/ko/sub01/sub01_01_01.do", "verifiedAt": "2026-07-30", "isPrimary": true }]
+}

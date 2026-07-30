@@ -66,11 +66,17 @@ function twoYearsBefore(value: DateParts): DateParts {
   return { ...value, year: value.year - 2 };
 }
 
-function optionalSum(values: Array<number | undefined>): number | undefined {
-  const present = values.filter((value): value is number => value !== undefined);
-  return present.length > 0
-    ? present.reduce((total, value) => total + value, 0)
+function completeSum(values: Array<number | undefined>): number | undefined {
+  return values.every((value): value is number => value !== undefined)
+    ? values.reduce((total, value) => total + value, 0)
     : undefined;
+}
+
+function addMonths(value: DateParts, months: number): DateParts {
+  const monthIndex = value.month - 1 + months;
+  const year = value.year + Math.floor(monthIndex / 12);
+  const month = (monthIndex % 12) + 1;
+  return { year, month, day: value.day };
 }
 
 export function deriveProfile(
@@ -95,6 +101,12 @@ export function deriveProfile(
     childrenWithAge.length > 0
       ? Math.min(...childrenWithAge.map(({ ageMonths }) => ageMonths))
       : undefined;
+  const youngestChild =
+    childrenWithAge.length > 0
+      ? childrenWithAge.reduce((youngest, current) =>
+          current.ageMonths < youngest.ageMonths ? current : youngest,
+        ).child
+      : undefined;
 
   const recentBirthThreshold = twoYearsBefore(today);
   const hasChildBornWithin2Years = childrenWithAge.some(({ birth }) => {
@@ -103,15 +115,31 @@ export function deriveProfile(
     );
   });
 
-  const coupleIncomeAnnual = optionalSum([
-    profile.applicantIncomeAnnual,
-    profile.spouseIncomeAnnual,
-  ]);
-  const householdIncomeAnnual = optionalSum([
-    profile.applicantIncomeAnnual,
-    profile.spouseIncomeAnnual,
-    ...profile.householdMembers.map((member) => member.incomeAnnual),
-  ]);
+  const hasSpouse =
+    profile.maritalStatus === "married" ||
+    profile.maritalStatus === "planned" ||
+    profile.spouseIncomeAnnual !== undefined;
+  const hasConfirmedNoSpouse = ["single", "divorced", "widowed"].includes(
+    profile.maritalStatus ?? "",
+  );
+  const coupleIncomeAnnual =
+    hasSpouse || hasConfirmedNoSpouse
+      ? completeSum([
+          profile.applicantIncomeAnnual,
+          ...(hasSpouse ? [profile.spouseIncomeAnnual] : []),
+        ])
+      : undefined;
+  const householdIncomeAnnual =
+    hasSpouse || hasConfirmedNoSpouse
+      ? completeSum([
+          profile.applicantIncomeAnnual,
+          ...(hasSpouse ? [profile.spouseIncomeAnnual] : []),
+          ...profile.householdMembers.map((member) => member.incomeAnnual),
+        ])
+      : undefined;
+  const plannedMarriage = profile.plannedMarriageDate
+    ? parseDateOnly(profile.plannedMarriageDate)
+    : undefined;
 
   return {
     ...profile,
@@ -136,5 +164,21 @@ export function deriveProfile(
         : 0) +
       profile.householdMembers.length +
       profile.children.length,
+    isDualIncome:
+      profile.applicantIncomeAnnual === undefined ||
+      profile.spouseIncomeAnnual === undefined
+        ? undefined
+        : profile.applicantIncomeAnnual > 0 && profile.spouseIncomeAnnual > 0,
+    plannedMarriageWithin3Months:
+      plannedMarriage === undefined
+        ? undefined
+        : isOnOrBefore(today, plannedMarriage) &&
+          isOnOrBefore(plannedMarriage, addMonths(today, 3)),
+    youngestChildNationalityStatus: youngestChild?.nationalityStatus,
+    youngestChildResidentRegistered:
+      youngestChild?.residentRegistrationStatus === undefined
+        ? undefined
+        : youngestChild.residentRegistrationStatus === "registered",
+    youngestChildBirthOrder: youngestChild?.birthOrder,
   };
 }

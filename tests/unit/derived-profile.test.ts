@@ -97,4 +97,48 @@ describe("deriveProfile", () => {
     expect(result.householdIncomeAnnual).toBe(80_000_000);
     expect(result.householdSize).toBe(3);
   });
+
+  it("기혼자의 배우자 소득이 비어 있으면 합산소득을 추측하지 않는다", () => {
+    const result = deriveProfile(
+      {
+        birthDate: "1990-01-01",
+        maritalStatus: "married",
+        residence: { sidoCode: "11", sigunguCode: "11680" },
+        applicantIncomeAnnual: 40_000_000,
+        householdMembers: [],
+        children: [],
+      },
+      asOf,
+    );
+
+    expect(result.coupleIncomeAnnual).toBeUndefined();
+    expect(result.householdIncomeAnnual).toBeUndefined();
+  });
+
+  it("막내 자녀의 자격정보와 3개월 이내 결혼예정 여부를 파생한다", () => {
+    const result = deriveProfile(
+      {
+        birthDate: "1990-01-01",
+        maritalStatus: "planned",
+        plannedMarriageDate: "2026-09-30",
+        residence: { sidoCode: "11", sigunguCode: "11680" },
+        householdMembers: [],
+        children: [
+          {
+            birthDate: "2025-12-15",
+            relationshipType: "birth",
+            birthOrder: 2,
+            nationalityStatus: "korean",
+            residentRegistrationStatus: "registered",
+          },
+        ],
+      },
+      asOf,
+    );
+
+    expect(result.plannedMarriageWithin3Months).toBe(true);
+    expect(result.youngestChildBirthOrder).toBe(2);
+    expect(result.youngestChildNationalityStatus).toBe("korean");
+    expect(result.youngestChildResidentRegistered).toBe(true);
+  });
 });

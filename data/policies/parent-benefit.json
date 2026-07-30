@@ -1,0 +1,20 @@
+{
+  "id": "parent-benefit",
+  "slug": "parent-benefit",
+  "versionId": "parent-benefit-2026-01",
+  "officialName": "부모급여",
+  "summary": "0~1세 아동 가정에 현금 또는 보육료 형태로 매월 지원합니다.",
+  "policyType": "grant",
+  "providerName": "보건복지부",
+  "catalogLevel": "rule_ready",
+  "effectiveFrom": "2026-01-01",
+  "effectiveTo": null,
+  "eligibilityRule": { "all": [
+    { "field": "youngestChildAgeMonths", "label": "0~23개월 아동", "op": "lte", "value": 23, "reason": "0~23개월 자녀가 있어 부모급여 연령 조건에 해당합니다.", "question": "가장 어린 자녀의 생년월일은 언제인가요?", "sourceId": "bokjiro-parent-benefit" },
+    { "field": "youngestChildNationalityStatus", "label": "아동 국적", "op": "in", "value": ["korean", "dual", "refugee"], "reason": "아동 국적이 공식 지원 범위에 해당합니다.", "question": "해당 자녀의 국적 상태를 알려주세요.", "sourceId": "bokjiro-parent-benefit" },
+    { "field": "youngestChildResidentRegistered", "label": "주민등록", "op": "eq", "value": true, "reason": "아동의 주민등록 상태가 확인됐습니다.", "question": "해당 자녀의 주민등록이 완료됐나요?", "sourceId": "bokjiro-parent-benefit" }
+  ]},
+  "benefitSummary": "만 0세 월 100만 원, 만 1세 월 50만 원(보육서비스 이용 시 지급 방식 조정)",
+  "application": { "officialUrl": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00004657&wlfareInfoReldBztpCd=01", "channels": ["복지로", "정부24", "읍면동 행정복지센터"], "confirmationRequired": true },
+  "sources": [{ "id": "bokjiro-parent-benefit", "title": "부모급여", "publisher": "복지로", "url": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00004657&wlfareInfoReldBztpCd=01", "verifiedAt": "2026-07-30", "isPrimary": true }]
+}

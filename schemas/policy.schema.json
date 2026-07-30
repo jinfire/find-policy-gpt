@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://find-policy.local/schemas/policy.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "slug", "versionId", "officialName", "summary", "policyType", "providerName", "catalogLevel", "effectiveFrom", "eligibilityRule", "benefitSummary", "application", "sources"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "slug": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "versionId": { "type": "string", "minLength": 1 },
+    "officialName": { "type": "string", "minLength": 1 },
+    "summary": { "type": "string", "minLength": 1 },
+    "policyType": { "enum": ["grant", "voucher", "loan", "service"] },
+    "providerName": { "type": "string", "minLength": 1 },
+    "catalogLevel": { "enum": ["search_only", "partially_structured", "rule_ready"] },
+    "effectiveFrom": { "type": "string", "format": "date" },
+    "effectiveTo": { "type": ["string", "null"], "format": "date" },
+    "eligibilityRule": { "$ref": "#/$defs/condition" },
+    "benefitSummary": { "type": "string", "minLength": 1 },
+    "application": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["officialUrl", "channels", "confirmationRequired"],
+      "properties": {
+        "officialUrl": { "type": "string", "format": "uri", "pattern": "^https://" },
+        "channels": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "confirmationRequired": { "const": true }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "publisher", "url", "verifiedAt", "isPrimary"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "title": { "type": "string", "minLength": 1 },
+          "publisher": { "type": "string", "minLength": 1 },
+          "url": { "type": "string", "format": "uri", "pattern": "^https://" },
+          "verifiedAt": { "type": "string", "format": "date" },
+          "isPrimary": { "type": "boolean" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "condition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["field", "label", "op", "value", "reason", "question"],
+          "properties": {
+            "field": { "type": "string", "minLength": 1 },
+            "label": { "type": "string", "minLength": 1 },
+            "op": { "enum": ["eq", "neq", "gt", "gte", "lt", "lte", "in", "not_in", "contains", "between", "date_before", "date_after", "exists", "not_exists"] },
+            "value": {},
+            "reason": { "type": "string", "minLength": 1 },
+            "failureReason": { "type": "string" },
+            "question": { "type": "string", "minLength": 1 },
+            "sourceId": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["all"],
+          "properties": { "all": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/condition" } } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["any"],
+          "properties": { "any": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/condition" } } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["not"],
+          "properties": { "not": { "$ref": "#/$defs/condition" } }
+        }
+      ]
+    }
+  }
+}

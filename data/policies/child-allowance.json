@@ -1,0 +1,20 @@
+{
+  "id": "child-allowance",
+  "slug": "child-allowance",
+  "versionId": "child-allowance-2026-03",
+  "officialName": "아동수당",
+  "summary": "만 9세 미만 아동에게 지역에 따라 매월 수당을 지급합니다.",
+  "policyType": "grant",
+  "providerName": "보건복지부",
+  "catalogLevel": "rule_ready",
+  "effectiveFrom": "2026-03-20",
+  "effectiveTo": null,
+  "eligibilityRule": { "all": [
+    { "field": "youngestChildAgeMonths", "label": "만 9세 미만 아동", "op": "lte", "value": 107, "reason": "만 9세 미만 자녀가 있습니다.", "question": "자녀의 생년월일은 언제인가요?", "sourceId": "mohw-child-allowance" },
+    { "field": "youngestChildNationalityStatus", "label": "아동 국적", "op": "in", "value": ["korean", "dual", "refugee"], "reason": "아동 국적이 공식 지원 범위에 해당합니다.", "question": "해당 자녀의 국적 상태를 알려주세요.", "sourceId": "mohw-child-allowance" },
+    { "field": "youngestChildResidentRegistered", "label": "주민등록", "op": "eq", "value": true, "reason": "아동의 주민등록 상태가 확인됐습니다.", "question": "해당 자녀의 주민등록이 완료됐나요?", "sourceId": "mohw-child-allowance" }
+  ]},
+  "benefitSummary": "아동 1인당 월 10만~13만 원(지역 구분과 지급수단에 따라 다름)",
+  "application": { "officialUrl": "https://www.mohw.go.kr/menu.es?mid=a10711030100", "channels": ["복지로", "읍면동 주민센터"], "confirmationRequired": true },
+  "sources": [{ "id": "mohw-child-allowance", "title": "아동수당 지급", "publisher": "보건복지부", "url": "https://www.mohw.go.kr/menu.es?mid=a10711030100", "verifiedAt": "2026-07-30", "isPrimary": true }]
+}
