@@ -141,6 +141,10 @@ export function deriveProfile(
   const plannedMarriage = profile.plannedMarriageDate
     ? parseDateOnly(profile.plannedMarriageDate)
     : undefined;
+  const childCount = profile.children.reduce(
+    (count, child) => Math.max(count, child.birthOrder ?? 0),
+    profile.children.length,
+  );
   const householdSize =
     1 +
     (profile.maritalStatus === "married" ||
@@ -148,7 +152,7 @@ export function deriveProfile(
       ? 1
       : 0) +
     profile.householdMembers.length +
-    profile.children.length;
+    childCount;
 
   return {
     ...profile,
@@ -157,7 +161,7 @@ export function deriveProfile(
     marriageMonths,
     isNewlywedWithin7Years:
       marriageMonths !== undefined && marriageMonths >= 0 && marriageMonths <= 84,
-    childCount: profile.children.length,
+    childCount,
     minorChildCount: childrenWithAge.filter(({ age: childAge }) => childAge < 19)
       .length,
     youngestChildAgeMonths,

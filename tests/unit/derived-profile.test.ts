@@ -56,6 +56,28 @@ describe("deriveProfile", () => {
     expect(result.hasChildBornWithin2Years).toBe(true);
   });
 
+  it("막내 출생 순위로 전체 자녀 수를 추정해 가구원 수에 반영한다", () => {
+    const result = deriveProfile(
+      {
+        birthDate: "1990-01-01",
+        maritalStatus: "married",
+        residence: { sidoCode: "11", sigunguCode: "11680" },
+        householdMembers: [],
+        children: [
+          {
+            birthDate: "2025-12-15",
+            relationshipType: "birth",
+            birthOrder: 2,
+          },
+        ],
+      },
+      asOf,
+    );
+
+    expect(result.childCount).toBe(2);
+    expect(result.householdSize).toBe(4);
+  });
+
   it("거주지 코드로 수도권 여부를 계산한다", () => {
     const seoul = deriveProfile(
       {

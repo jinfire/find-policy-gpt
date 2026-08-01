@@ -42,4 +42,30 @@ describe("PolicyFinder", () => {
       screen.queryByText("정보가 다르다면 알려주세요"),
     ).not.toBeInTheDocument();
   });
+
+  it("기혼 사용자가 둘째 자녀를 입력하면 4인 가구로 추정한다", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("scrollTo", vi.fn());
+    render(<PolicyFinder />);
+
+    await user.type(screen.getByLabelText("생년월일"), "1992-05-10");
+    await user.selectOptions(screen.getByLabelText("혼인 상태"), "married");
+    await user.type(screen.getByLabelText("혼인신고일"), "2024-04-20");
+    await user.click(screen.getByRole("button", { name: "다음" }));
+    await user.type(screen.getByLabelText(/본인 연소득/), "4000");
+    await user.type(screen.getByLabelText(/배우자 연소득/), "3000");
+    await user.click(screen.getByLabelText("자녀가 있어요"));
+    await user.type(
+      screen.getByLabelText("가장 어린 자녀 생년월일"),
+      "2025-12-15",
+    );
+    await user.selectOptions(screen.getByLabelText("출생 순위"), "2");
+    await user.click(screen.getByRole("button", { name: "다음" }));
+    await user.click(screen.getByRole("button", { name: "내 혜택 결과 보기" }));
+
+    expect(screen.getByText("2026년 · 4인 가구 추정")).toBeInTheDocument();
+    expect(
+      screen.getByText("예상 기준 중위소득 89.8%"),
+    ).toBeInTheDocument();
+  });
 });
