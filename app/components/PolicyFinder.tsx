@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
+import { CatalogSearch } from "./CatalogSearch";
 import {
   deriveProfile,
   recommendPolicies,
@@ -581,6 +582,7 @@ export function PolicyFinder() {
           <div><b>03</b><strong>이유와 함께 추천</strong><span>왜 추천했는지, 무엇을 더 볼지 알려줘요</span></div>
         </div>
       </section>
+      <CatalogSearch />
     </main>
   );
 }
