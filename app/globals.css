@@ -59,7 +59,7 @@ input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rg
 .median-income-card span { display: block; color: var(--green); font-size: 11px; font-weight: 800; }
 .median-income-card strong { display: block; margin-top: 5px; color: var(--green-dark); font-size: 18px; }
 .median-income-card p { margin: 7px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
-.primary-button, .secondary-button { border: 0; border-radius: 11px; cursor: pointer; font-weight: 800; }
+.primary-button { border: 0; border-radius: 11px; cursor: pointer; font-weight: 800; }
 .primary-button { width: 100%; min-height: 52px; margin-top: 24px; color: white; background: var(--green); box-shadow: 0 8px 18px rgba(17, 97, 73, .18); }
 .primary-button:hover { background: var(--green-dark); }
 .primary-button:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; }
@@ -90,7 +90,6 @@ input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rg
 .result-card h3 { margin: 7px 0 0; font-size: 23px; letter-spacing: -.035em; }
 .status-badge { height: fit-content; white-space: nowrap; padding: 8px 11px; border-radius: 99px; background: #edf6f1; color: var(--green); font-size: 12px; font-weight: 800; }
 .needs_review .status-badge { color: #855e06; background: #fff5d8; }
-.unlikely .status-badge { color: #68706b; background: #f0f2f0; }
 .policy-summary { color: var(--muted); line-height: 1.6; }
 .reason-box, .check-box { margin-top: 20px; padding: 18px; border-radius: 13px; background: #f1f8f4; }
 .check-box { background: #fff9e8; }
@@ -104,7 +103,6 @@ input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rg
 .benefit p { margin: 6px 0 0; font-weight: 700; line-height: 1.5; }
 .official-link { display: inline-flex; gap: 6px; color: var(--green); font-size: 14px; font-weight: 800; text-decoration: none; }
 .report-link { float: right; color: #7b847e; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
-.secondary-button { width: 100%; margin-top: 22px; padding: 15px; color: var(--green); background: #edf6f1; }
 .disclaimer { margin-top: 28px; color: #78817b; font-size: 12px; line-height: 1.7; text-align: center; }
 
 @media (max-width: 800px) {

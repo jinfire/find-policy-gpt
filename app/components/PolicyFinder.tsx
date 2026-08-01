@@ -197,7 +197,6 @@ export function PolicyFinder() {
   const [form, setForm] = useState(initialForm);
   const [step, setStep] = useState(1);
   const [results, setResults] = useState<PolicyRecommendation[] | null>(null);
-  const [showUnlikely, setShowUnlikely] = useState(false);
 
   const incomeEstimate = useMemo(() => {
     if (!form.birthDate) return undefined;
@@ -207,14 +206,6 @@ export function PolicyFinder() {
       return undefined;
     }
   }, [form]);
-
-  const visibleResults = useMemo(
-    () =>
-      results?.filter(
-        (result) => showUnlikely || result.match.status !== "unlikely",
-      ) ?? [],
-    [results, showUnlikely],
-  );
 
   const update = <K extends keyof FormState>(
     key: K,
@@ -260,20 +251,12 @@ export function PolicyFinder() {
           </p>
         </section>
         <section className="result-list" aria-live="polite">
-          {visibleResults.map((result) => (
+          {results.map((result) => (
             <RecommendationCard
               key={result.policy.versionId}
               recommendation={result}
             />
           ))}
-          <button
-            className="secondary-button"
-            onClick={() => setShowUnlikely((value) => !value)}
-          >
-            {showUnlikely
-              ? "가능성 낮은 정책 숨기기"
-              : "가능성 낮은 정책도 보기"}
-          </button>
           <p className="disclaimer">
             추천 결과는 입력 정보에 따른 사전 안내입니다. 실제 선정 여부,
             금리와 한도는 정책 시행기관의 최신 공고와 심사 결과를 따릅니다.

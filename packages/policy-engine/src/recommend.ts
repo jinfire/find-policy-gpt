@@ -38,6 +38,7 @@ export function recommendPolicies(
         profile: derived,
       }),
     }))
+    .filter((recommendation) => recommendation.match.status !== "unlikely")
     .sort((left, right) => {
       const byStatus =
         statusOrder[left.match.status] - statusOrder[right.match.status];

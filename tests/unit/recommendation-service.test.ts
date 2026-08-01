@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { recommendPolicies } from "../../packages/policy-engine/src/recommend";
 
 describe("recommendPolicies", () => {
-  it("사용자 입력을 한 번 파생한 뒤 10개 정책과 추천 이유를 반환한다", () => {
+  it("사용자 입력을 한 번 파생한 뒤 볼 가치가 있는 정책과 추천 이유만 반환한다", () => {
     const results = recommendPolicies(
       {
         birthDate: "1992-05-10",
@@ -29,7 +29,10 @@ describe("recommendPolicies", () => {
       new Date("2026-07-30T00:00:00+09:00"),
     );
 
-    expect(results).toHaveLength(10);
+    expect(results.length).toBeGreaterThan(0);
+    expect(
+      results.every((result) => result.match.status !== "unlikely"),
+    ).toBe(true);
     const firstMeeting = results.find(
       (result) => result.policy.id === "first-meeting-voucher",
     );
