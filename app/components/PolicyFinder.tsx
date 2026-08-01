@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  deriveProfile,
   recommendPolicies,
   type PolicyProfile,
   type PolicyRecommendation,
@@ -197,6 +198,15 @@ export function PolicyFinder() {
   const [step, setStep] = useState(1);
   const [results, setResults] = useState<PolicyRecommendation[] | null>(null);
   const [showUnlikely, setShowUnlikely] = useState(false);
+
+  const incomeEstimate = useMemo(() => {
+    if (!form.birthDate) return undefined;
+    try {
+      return deriveProfile(buildProfile(form));
+    } catch {
+      return undefined;
+    }
+  }, [form]);
 
   const visibleResults = useMemo(
     () =>
@@ -438,6 +448,19 @@ export function PolicyFinder() {
                     }
                   />
                 </label>
+              )}
+              {incomeEstimate?.householdMedianIncomeRatio !== undefined && (
+                <aside className="median-income-card" aria-live="polite">
+                  <span>2026년 · {incomeEstimate.householdSize}인 가구 추정</span>
+                  <strong>
+                    예상 기준 중위소득{" "}
+                    {incomeEstimate.householdMedianIncomeRatio.toFixed(1)}%
+                  </strong>
+                  <p>
+                    입력한 연소득을 월소득으로 환산한 참고값이에요. 복지 심사는
+                    소득·재산을 반영하므로 실제 소득인정액과 다를 수 있어요.
+                  </p>
+                </aside>
               )}
               <label className="check-label">
                 <input

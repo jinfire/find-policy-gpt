@@ -96,6 +96,7 @@ describe("deriveProfile", () => {
     expect(result.coupleIncomeAnnual).toBe(70_000_000);
     expect(result.householdIncomeAnnual).toBe(80_000_000);
     expect(result.householdSize).toBe(3);
+    expect(result.householdMedianIncomeRatio).toBe(124.4);
   });
 
   it("기혼자의 배우자 소득이 비어 있으면 합산소득을 추측하지 않는다", () => {

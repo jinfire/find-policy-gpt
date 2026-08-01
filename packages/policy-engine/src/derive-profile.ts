@@ -2,6 +2,7 @@ import type {
   DerivedProfile,
   UserProfile,
 } from "../../shared/src/types";
+import { calculateMedianIncomeRatio } from "./median-income";
 
 type DateParts = {
   year: number;
@@ -140,6 +141,14 @@ export function deriveProfile(
   const plannedMarriage = profile.plannedMarriageDate
     ? parseDateOnly(profile.plannedMarriageDate)
     : undefined;
+  const householdSize =
+    1 +
+    (profile.maritalStatus === "married" ||
+    profile.spouseIncomeAnnual !== undefined
+      ? 1
+      : 0) +
+    profile.householdMembers.length +
+    profile.children.length;
 
   return {
     ...profile,
@@ -156,14 +165,12 @@ export function deriveProfile(
     isCapitalRegion: ["11", "28", "41"].includes(profile.residence.sidoCode),
     coupleIncomeAnnual,
     householdIncomeAnnual,
-    householdSize:
-      1 +
-      (profile.maritalStatus === "married" ||
-      profile.spouseIncomeAnnual !== undefined
-        ? 1
-        : 0) +
-      profile.householdMembers.length +
-      profile.children.length,
+    householdSize,
+    householdMedianIncomeRatio: calculateMedianIncomeRatio({
+      householdIncomeAnnual,
+      householdSize,
+      year: today.year,
+    }),
     isDualIncome:
       profile.applicantIncomeAnnual === undefined ||
       profile.spouseIncomeAnnual === undefined

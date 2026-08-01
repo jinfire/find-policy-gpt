@@ -59,6 +59,7 @@ export type DerivedProfile = UserProfile & {
   coupleIncomeAnnual?: number;
   householdIncomeAnnual?: number;
   householdSize: number;
+  householdMedianIncomeRatio?: number;
   isDualIncome?: boolean;
   plannedMarriageWithin3Months?: boolean;
   youngestChildNationalityStatus?: ChildProfile["nationalityStatus"];
