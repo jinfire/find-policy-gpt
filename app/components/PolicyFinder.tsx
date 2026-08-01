@@ -182,14 +182,6 @@ function RecommendationCard({
       >
         공식 사이트에서 확인하기 <span aria-hidden="true">↗</span>
       </a>
-      <a
-        className="report-link"
-        href={`https://github.com/jinfire/find-policy-gpt/issues/new?title=${encodeURIComponent(`[정책 오류] ${policy.officialName}`)}&body=${encodeURIComponent(`정책 ID: ${policy.id}\n확인한 내용:\n`)}`}
-        target="_blank"
-        rel="noreferrer"
-      >
-        정보가 다르다면 알려주세요
-      </a>
     </article>
   );
 }
@@ -252,6 +244,19 @@ export function PolicyFinder() {
           </p>
         </section>
         <section className="result-list" aria-live="polite">
+          {incomeEstimate?.householdMedianIncomeRatio !== undefined && (
+            <aside className="median-income-card">
+              <span>2026년 · {incomeEstimate.householdSize}인 가구 추정</span>
+              <strong>
+                예상 기준 중위소득{" "}
+                {incomeEstimate.householdMedianIncomeRatio.toFixed(1)}%
+              </strong>
+              <p>
+                입력한 연소득을 월소득으로 환산한 참고값이에요. 복지 심사는
+                소득·재산을 반영하므로 실제 소득인정액과 다를 수 있어요.
+              </p>
+            </aside>
+          )}
           {results.map((result) => (
             <RecommendationCard
               key={result.policy.versionId}
@@ -432,19 +437,6 @@ export function PolicyFinder() {
                     }
                   />
                 </label>
-              )}
-              {incomeEstimate?.householdMedianIncomeRatio !== undefined && (
-                <aside className="median-income-card" aria-live="polite">
-                  <span>2026년 · {incomeEstimate.householdSize}인 가구 추정</span>
-                  <strong>
-                    예상 기준 중위소득{" "}
-                    {incomeEstimate.householdMedianIncomeRatio.toFixed(1)}%
-                  </strong>
-                  <p>
-                    입력한 연소득을 월소득으로 환산한 참고값이에요. 복지 심사는
-                    소득·재산을 반영하므로 실제 소득인정액과 다를 수 있어요.
-                  </p>
-                </aside>
               )}
               <label className="check-label">
                 <input

@@ -105,6 +105,7 @@ input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rg
 .results-hero > p:last-child { color: var(--muted); font-size: 16px; }
 .back-button { padding: 0; margin-bottom: 50px; border: 0; color: var(--muted); background: none; cursor: pointer; }
 .result-list { max-width: 900px; margin: 0 auto; padding: 0 28px 100px; }
+.result-list > .median-income-card { margin: 0 0 18px; }
 .result-card { margin-top: 18px; padding: 28px; border: 1px solid var(--line); border-radius: 20px; background: white; box-shadow: 0 12px 34px rgba(20, 37, 28, .06); }
 .result-card.eligible { border-top: 4px solid var(--green); }
 .result-card.needs_review { border-top: 4px solid #d9a327; }
@@ -125,7 +126,6 @@ input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rg
 .benefit span { color: var(--muted); font-size: 12px; font-weight: 700; }
 .benefit p { margin: 6px 0 0; font-weight: 700; line-height: 1.5; }
 .official-link { display: inline-flex; gap: 6px; color: var(--green); font-size: 14px; font-weight: 800; text-decoration: none; }
-.report-link { float: right; color: #7b847e; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
 .disclaimer { margin-top: 28px; color: #78817b; font-size: 12px; line-height: 1.7; text-align: center; }
 
 @media (max-width: 800px) {
