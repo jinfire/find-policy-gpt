@@ -13,6 +13,109 @@ const auditColumns = {
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 };
 
+export const catalogSources = sqliteTable("catalog_sources", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  baseUrl: text("base_url").notNull(),
+  licenseUrl: text("license_url"),
+  reviewMonths: text("review_months", { mode: "json" })
+    .$type<number[]>()
+    .notNull()
+    .default([6, 12]),
+  lastSuccessfulSyncAt: text("last_successful_sync_at"),
+  ...auditColumns,
+});
+
+export const catalogSyncRuns = sqliteTable(
+  "catalog_sync_runs",
+  {
+    id: text("id").primaryKey(),
+    sourceId: text("source_id")
+      .notNull()
+      .references(() => catalogSources.id),
+    status: text("status", {
+      enum: ["running", "completed", "failed"],
+    })
+      .notNull()
+      .default("running"),
+    startedAt: text("started_at").notNull(),
+    completedAt: text("completed_at"),
+    sourceCount: integer("source_count").notNull().default(0),
+    upsertedCount: integer("upserted_count").notNull().default(0),
+    deactivatedCount: integer("deactivated_count").notNull().default(0),
+    errorMessage: text("error_message"),
+    ...auditColumns,
+  },
+  (table) => [index("catalog_sync_runs_source_idx").on(table.sourceId)],
+);
+
+export const sourceCatalogServices = sqliteTable(
+  "source_catalog_services",
+  {
+    id: text("id").primaryKey(),
+    sourceId: text("source_id")
+      .notNull()
+      .references(() => catalogSources.id),
+    sourceServiceId: text("source_service_id").notNull(),
+    name: text("name").notNull(),
+    summary: text("summary").notNull().default(""),
+    supportType: text("support_type"),
+    targetText: text("target_text"),
+    criteriaText: text("criteria_text"),
+    benefitText: text("benefit_text"),
+    applicationMethod: text("application_method"),
+    deadlineText: text("deadline_text"),
+    detailUrl: text("detail_url"),
+    onlineApplicationUrl: text("online_application_url"),
+    requiredDocuments: text("required_documents"),
+    providerCode: text("provider_code"),
+    providerName: text("provider_name").notNull(),
+    providerType: text("provider_type"),
+    departmentName: text("department_name"),
+    audienceType: text("audience_type"),
+    serviceField: text("service_field"),
+    receivingAgency: text("receiving_agency"),
+    phone: text("phone"),
+    viewCount: integer("view_count"),
+    scope: text("scope", { enum: ["national", "regional"] }).notNull(),
+    conditionCodes: text("condition_codes", { mode: "json" })
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    legalBasis: text("legal_basis", { mode: "json" })
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    rawPayload: text("raw_payload", { mode: "json" })
+      .$type<Record<string, unknown>>()
+      .notNull(),
+    contentHash: text("content_hash").notNull(),
+    catalogLevel: text("catalog_level", {
+      enum: ["search_only", "partially_structured", "rule_ready"],
+    })
+      .notNull()
+      .default("search_only"),
+    sourceRegisteredAt: text("source_registered_at"),
+    sourceModifiedAt: text("source_modified_at"),
+    firstSeenAt: text("first_seen_at").notNull(),
+    lastSeenAt: text("last_seen_at").notNull(),
+    isActive: integer("is_active", { mode: "boolean" })
+      .notNull()
+      .default(true),
+    ...auditColumns,
+  },
+  (table) => [
+    uniqueIndex("source_catalog_services_source_service_unique").on(
+      table.sourceId,
+      table.sourceServiceId,
+    ),
+    index("source_catalog_services_name_idx").on(table.name),
+    index("source_catalog_services_provider_idx").on(table.providerName),
+    index("source_catalog_services_field_idx").on(table.serviceField),
+    index("source_catalog_services_active_idx").on(table.isActive),
+  ],
+);
+
 export const policies = sqliteTable(
   "policies",
   {
@@ -117,6 +220,30 @@ export const policySources = sqliteTable(
     ...auditColumns,
   },
   (table) => [index("policy_sources_policy_idx").on(table.policyId)],
+);
+
+export const policyCatalogMappings = sqliteTable(
+  "policy_catalog_mappings",
+  {
+    id: text("id").primaryKey(),
+    policyId: text("policy_id")
+      .notNull()
+      .references(() => policies.id, { onDelete: "cascade" }),
+    sourceCatalogServiceId: text("source_catalog_service_id")
+      .notNull()
+      .references(() => sourceCatalogServices.id, { onDelete: "cascade" }),
+    relationType: text("relation_type", {
+      enum: ["primary", "variant", "related"],
+    }).notNull(),
+    verifiedAt: text("verified_at"),
+    ...auditColumns,
+  },
+  (table) => [
+    uniqueIndex("policy_catalog_mappings_pair_unique").on(
+      table.policyId,
+      table.sourceCatalogServiceId,
+    ),
+  ],
 );
 
 export const inputFieldDefinitions = sqliteTable("input_field_definitions", {

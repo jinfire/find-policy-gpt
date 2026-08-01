@@ -1,253 +1,127 @@
 # 정책 DB 설계
 
-## 결정
+## 결론
 
-정책을 DB에 저장한다. MVP는 PostgreSQL을 사용하고 다음을 조합한다.
-
-- 관계형 컬럼: 검색, 운영 상태, 담당 기관, 유효기간, 출처
-- JSONB: 조건 트리, 조건부 혜택, 신청 안내처럼 정책마다 모양이 다른 데이터
-- 버전 테이블: 과거 조건 보존과 변경 이력
-
-정책 조건을 애플리케이션 코드에 직접 하드코딩하지 않는다.
-
-## 핵심 모델
+실행 DB는 Cloudflare D1(SQLite 호환)이며 Drizzle로 스키마와 마이그레이션을 관리한다. 데이터는 `공식 원본 카탈로그`, `서비스가 검수한 정책`, `사용자 매칭 이력`의 세 층으로 분리한다.
 
 ```text
-policies
-  1 ── N policy_versions
-  1 ── N policy_sources
-  1 ── N policy_categories
-
-policy_versions
-  ├─ eligibility_rule JSONB
-  ├─ benefits JSONB
-  ├─ application JSONB
-  └─ required_documents JSONB
-
-input_field_definitions
-  └─ 룰에서 참조하는 사용자 필드 사전
+catalog_sources ──< catalog_sync_runs
+       │
+       └──< source_catalog_services >── policy_catalog_mappings ──> policies
+                                                                      │
+                                         policy_sources ──<───────────┤
+                                         policy_versions ──<──────────┘
+                                                  │
+                                                  └──< match_results <── match_runs
 ```
 
-## 테이블 초안
+정부24의 1만여 개 레코드는 모두 `source_catalog_services`에 보존한다. 그중 조건을 사람이 검수하고 테스트한 정책만 `policies + policy_versions`로 승격한다. 따라서 잘 알려지지 않은 정책도 검색에서 사라지지 않으면서, 검수하지 않은 원문을 확정 추천으로 오해시키지 않는다.
+
+## 1. 공식 원본 카탈로그
+
+### `catalog_sources`
+
+수집처 자체를 관리한다. 현재 `gov24` 한 건을 seed하며 API 기본 URL, 이용허락 URL, 검토 월 `[6, 12]`, 마지막 성공 시각을 저장한다.
+
+### `catalog_sync_runs`
+
+수집 실행마다 다음을 남긴다.
+
+- 실행 상태: running / completed / failed
+- 시작·완료 시각
+- 원본 건수, upsert 건수, 사라져 비활성화된 건수
+- 실패 메시지
+
+### `source_catalog_services`
+
+정부24의 `서비스ID`를 잃지 않고 목록·상세·지원조건을 합친 검색용 원본이다.
+
+| 컬럼군 | 주요 내용 |
+|---|---|
+| 식별 | `source_id`, `source_service_id`, 내부 `id` |
+| 검색 | 정책명, 요약, 지원유형, 지원대상, 선정기준, 지원내용 |
+| 신청 | 신청방법, 기한, 상세 URL, 온라인 신청 URL, 구비서류 |
+| 기관 | 기관 코드·명·유형, 부서, 접수기관, 문의처 |
+| 분류 | 전국/지역, 사용자구분, 서비스분야, 지원조건 코드 |
+| 감사 | 원문 JSON, 내용 해시, 등록·수정·최초발견·마지막발견 시각 |
+| 상태 | `search_only`, 활성 여부 |
+
+`source_id + source_service_id`가 유일 키다. 매 동기화 시작 시 기존 레코드를 비활성화하고 이번 응답에 나온 레코드를 다시 활성화하므로, 공식 목록에서 사라진 서비스도 삭제하지 않고 이력으로 남긴다.
+
+### `policy_catalog_mappings`
+
+원본 서비스와 검수 정책의 다대다 연결이다. 같은 중앙 정책이 여러 지역 변형으로 등록되거나 한 원본이 여러 정밀 룰과 연결되는 경우를 `primary / variant / related`로 표현한다. 이름이 비슷하다는 이유만으로 자동 병합하지 않는다.
+
+## 2. 검수된 정밀 정책
 
 ### `policies`
 
 정책의 변하지 않는 정체성이다.
 
-| 컬럼 | 타입 | 설명 |
-|---|---|---|
-| `id` | uuid | 내부 ID |
-| `slug` | text unique | 예: `first-meeting-voucher` |
-| `official_name` | text | 공식 정책명 |
-| `summary` | text | 짧은 설명 |
-| `policy_type` | enum | grant, voucher, loan, service |
-| `scope` | enum | national, regional |
-| `provider_name` | text | 담당 부처·기관 |
-| `status` | enum | draft, review, active, expired, suspended |
-| `catalog_level` | enum | search_only, partially_structured, rule_ready |
-| `canonical_policy_id` | uuid nullable | 유사·지역 서비스의 대표 정책 그룹 |
-| `created_at` | timestamptz | 생성 시각 |
-| `updated_at` | timestamptz | 수정 시각 |
+- 이름, 요약, 담당기관, 전국/지역 범위
+- 지원금·바우처·대출·서비스 유형
+- draft / review / active / expired / suspended
+- search_only / partially_structured / rule_ready
+- 유사 정책을 묶는 `canonical_policy_id`
 
 ### `policy_versions`
 
-특정 기간에 유효한 정책 내용이다.
+특정 기간에 유효한 조건과 혜택을 버전으로 보존한다.
 
-| 컬럼 | 타입 | 설명 |
-|---|---|---|
-| `id` | uuid | 버전 ID |
-| `policy_id` | uuid FK | 정책 |
-| `version_no` | integer | 증가하는 버전 |
-| `effective_from` | date | 적용 시작일 |
-| `effective_to` | date nullable | 적용 종료일 |
-| `eligibility_rule` | jsonb | 기계 평가 조건 |
-| `benefits` | jsonb | 금액·형태·조건부 변형 |
-| `application` | jsonb | 신청 채널, 기간, 링크 |
-| `required_documents` | jsonb | 서류와 조건 |
-| `notes` | text | 운영자 참고 |
-| `review_status` | enum | draft, reviewed, published |
-| `reviewed_by` | uuid nullable | 검수자 |
-| `reviewed_at` | timestamptz nullable | 검수 시각 |
-| `published_at` | timestamptz nullable | 공개 시각 |
-| `content_hash` | text | 변경 탐지 |
+- `eligibility_rule`: 3값 조건 트리 JSON
+- `benefit`, `application`, `required_documents`: 구조화 JSON
+- 적용 시작·종료일, 검수·공개 상태와 담당자
+- 원문 변경을 비교하는 `content_hash`
 
-`policy_id + version_no`와 정책별 유효기간 중복 방지를 제약조건으로 둔다.
+같은 정책의 `version_no`는 중복될 수 없다. 과거 버전을 덮어쓰지 않기 때문에 “예전에는 추천됐는데 지금은 왜 아닌지”를 설명할 수 있다.
 
 ### `policy_sources`
 
-| 컬럼 | 타입 | 설명 |
-|---|---|---|
-| `id` | uuid | 출처 ID |
-| `policy_id` | uuid FK | 정책 |
-| `source_type` | enum | agency, law, portal, notice, api |
-| `url` | text | 공식 URL |
-| `title` | text | 문서 제목 |
-| `publisher` | text | 발행 기관 |
-| `retrieved_at` | timestamptz | 수집 시각 |
-| `last_verified_at` | timestamptz | 사람이 확인한 시각 |
-| `raw_snapshot_path` | text nullable | 원문 스냅샷 위치 |
-| `content_hash` | text | 변경 감지용 해시 |
-| `is_primary` | boolean | 대표 근거 여부 |
-| `source_service_id` | text nullable | 보조금24 등 원본 시스템의 서비스 ID |
+공식 기관 페이지, 법령, 공고, 포털, API 출처를 정책과 연결한다. URL, 발행기관, 수집·최종확인 시각, 해시, 원본 서비스 ID를 저장한다.
 
-### `input_field_definitions`
+## 3. 룰·운영 테이블
 
-| 컬럼 | 타입 | 설명 |
-|---|---|---|
-| `code` | text PK | `household_net_assets` 등 |
-| `label` | text | 사용자 질문명 |
-| `data_type` | text | date, number, boolean, enum |
-| `unit` | text nullable | KRW, month, m2 |
-| `enum_values` | jsonb nullable | 선택지 |
-| `sensitivity` | enum | normal, personal, sensitive |
-| `question_template` | text | 기본 질문 |
-| `validation_schema` | jsonb | 허용 범위 |
+- `input_field_definitions`: 질문 코드, 타입, 단위, 민감도, 파생관계
+- `region_classifications`: 수도권·인구감소지역 등 지역 분류와 유효기간
+- `policy_change_events`: 원문 해시 변경과 검수 결과
+- `policy_error_reports`: 사용자 오류 제보와 처리 상태
 
-### 추가를 권장하는 운영 테이블
+## 4. 사용자와 매칭
 
-- `policy_change_events`: 출처 변경 탐지와 검토 상태
-- `policy_reviews`: 누가 어떤 근거로 승인·반려했는지
-- `region_classifications`: 시군구별 수도권·인구감소 우대·특별 구분과 유효기간
-- `category_definitions`: 출산, 아동, 청년, 주거 등
-- `policy_category_links`: 정책과 카테고리 다대다 관계
-- `source_services`: 보조금24 등에서 동기화한 원본 서비스 레코드
-- `canonical_policy_links`: 원본 서비스와 대표 정책의 연결
+- `users`: 최소 계정 식별자
+- `profiles`: 명시적 동의를 받은 경우에만 암호화 저장
+- `match_runs`: 사용한 프로필 지문과 정책 버전 목록
+- `match_results`: 정책별 상태, 추천 이유, 추가 확인 필드
+
+현재 비회원 화면은 입력값을 브라우저 메모리에서만 사용하며 이 사용자 테이블에 저장하지 않는다.
 
 ## 조건 JSON 예시
-
-신생아 특례 디딤돌의 일부를 단순화한 예다.
 
 ```json
 {
   "all": [
     {
-      "field": "is_household_head",
-      "op": "eq",
-      "value": true,
-      "reason": "민법상 성년 세대주여야 합니다."
-    },
-    {
-      "field": "youngest_child_age_months",
-      "op": "lte",
-      "value": 24,
-      "reason": "대출접수일 기준 2년 내 출산·입양 가구여야 합니다."
-    },
-    {
       "field": "household_home_count",
       "op": "eq",
       "value": 0,
-      "reason": "심사 대상 세대원 전원이 무주택이어야 합니다."
+      "reason": "심사 대상 세대원 전원이 무주택입니다.",
+      "question": "가구 전체가 무주택인가요?",
+      "sourceId": "official-source-id"
     },
     {
-      "any": [
-        {
-          "field": "household_income_annual",
-          "op": "lte",
-          "value": 130000000
-        },
-        {
-          "all": [
-            {
-              "field": "is_dual_income",
-              "op": "eq",
-              "value": true
-            },
-            {
-              "field": "household_income_annual",
-              "op": "lte",
-              "value": 200000000
-            },
-            {
-              "field": "applicant_income_annual",
-              "op": "lte",
-              "value": 130000000
-            },
-            {
-              "field": "spouse_income_annual",
-              "op": "lte",
-              "value": 130000000
-            }
-          ]
-        }
-      ]
+      "field": "household_income_annual",
+      "op": "lte",
+      "value": 130000000,
+      "reason": "부부합산 소득 기준 이내입니다."
     }
   ]
 }
 ```
 
-실제 룰에는 각 노드의 `source_id`, `source_quote_location`, `severity`, `question_code`도 넣어 근거와 질문을 연결한다.
+## 중요한 설계 판단
 
-## 조건부 혜택 JSON 예시
-
-첫만남이용권은 단일 금액 컬럼으로 표현할 수 없다.
-
-```json
-{
-  "type": "voucher",
-  "frequency": "once",
-  "variants": [
-    {
-      "when": {
-        "field": "child_birth_order",
-        "op": "eq",
-        "value": 1
-      },
-      "amount": 2000000,
-      "currency": "KRW"
-    },
-    {
-      "when": {
-        "field": "child_birth_order",
-        "op": "gte",
-        "value": 2
-      },
-      "amount": 3000000,
-      "currency": "KRW"
-    }
-  ]
-}
-```
-
-아동수당도 지역 분류에 따른 여러 `variants`로 저장한다.
-
-## 신청 정보 JSON 예시
-
-```json
-{
-  "channels": [
-    {
-      "type": "online",
-      "name": "복지로",
-      "url": "https://www.bokjiro.go.kr/"
-    },
-    {
-      "type": "visit",
-      "name": "읍면동 행정복지센터"
-    }
-  ],
-  "deadline_rule": null,
-  "official_confirmation_required": true
-}
-```
-
-## 사용자 데이터
-
-정책 카탈로그와 별도 스키마에 둔다.
-
-- `users`: 계정 최소 정보
-- `profiles`: 암호화된 기본 프로필
-- `profile_answers`: 필드 코드, 값, 값 상태, 기준일
-- `match_runs`: 어떤 정책 버전과 어떤 답변으로 평가했는지
-- `match_results`: 결과, 충족·미충족·미확인 조건
-
-평가 당시의 `policy_version_id`를 반드시 저장해야 나중에 결과가 달라진 이유를 설명할 수 있다.
-
-## 정책 적재 여부에 대한 결론
-
-정책 10개를 초기 seed로 DB에 넣는 것이 맞다. 단, 조사 문장을 통째로 한 컬럼에 넣는 방식은 피한다.
-
-1. `policies`에 정체성을 만든다.
-2. 조사 기준일의 조건을 `policy_versions`에 넣는다.
-3. 공식 링크와 확인일을 `policy_sources`에 넣는다.
-4. JSON Schema와 시나리오 테스트를 통과시킨다.
-5. 사람이 검수한 버전만 `published`로 전환한다.
+1. 전체 원본 1만여 건과 정밀 룰을 같은 완성도로 취급하지 않는다.
+2. 원본 ID와 원문 JSON을 보존하고 정규화 결과를 언제든 다시 만들 수 있게 한다.
+3. 정책 조건은 애플리케이션 코드가 아니라 버전 있는 JSON으로 저장한다.
+4. 사용자가 보는 추천에는 검수된 `rule_ready`만 사용한다.
+5. 전체 원본은 숨은 혜택 검색과 다음 검수 대상 선정에 사용한다.

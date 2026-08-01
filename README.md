@@ -8,11 +8,23 @@ MVP는 생성형 AI가 아닌 검수된 정책 데이터와 규칙 기반 매칭
 
 ## 현재 상태
 
-- 제품·데이터 모델 0차 설계 완료
-- 대표 정책 10개 공식 출처 조사 완료
-- 중복 질문을 제거한 점진형 사용자 입력 설계 완료
-- PostgreSQL + 정책 버전 + JSONB 룰 구조 설계 완료
-- 실행 가능한 애플리케이션과 DB 마이그레이션은 아직 미구현
+- localhost에서 실행되는 React/vinext 정책 추천 화면
+- 공식 출처를 검수한 10개 `rule_ready` 정책과 3값 룰 엔진
+- 추천 이유·추가 확인 조건·공식 신청 링크 제공
+- 2026년 가구원 수별 예상 기준 중위소득 비율 계산
+- 정부24 전체 혜택 1만여 건 수집·정규화·D1 upsert 파이프라인
+- 사용자 결과에서는 가능성 낮은 정책을 제외
+
+## 로컬 실행
+
+```bash
+npm install
+npm run dev
+```
+
+브라우저에서 `http://localhost:3000`을 연다.
+
+정부24 전체 카탈로그 적재는 [동기화 안내](./docs/catalog-sync.md)를 따른다.
 
 자세한 진행 상황은 [progress.md](./progress.md), 남은 작업은 [todo.md](./todo.md)에서 확인할 수 있습니다.
 
@@ -24,5 +36,6 @@ MVP는 생성형 AI가 아닌 검수된 정책 데이터와 규칙 기반 매칭
 - [전체 정책 규모와 수집 전략](./docs/policy-scope.md)
 - [사용자 입력 설계](./docs/user-input-schema.md)
 - [정책 DB 설계](./docs/database-design.md)
+- [정부24 전체 혜택 동기화](./docs/catalog-sync.md)
 - [룰 엔진 설계](./docs/rule-engine.md)
 - [전체 문서 인덱스](./docs/README.md)
