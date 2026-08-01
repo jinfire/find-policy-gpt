@@ -12,6 +12,7 @@ describe("PolicyFinder", () => {
     await user.type(screen.getByLabelText("생년월일"), "1992-05-10");
     await user.click(screen.getByRole("button", { name: "다음" }));
     await user.type(screen.getByLabelText(/본인 연소득/), "4000");
+    await user.type(screen.getByLabelText(/가구원 수/), "1");
 
     expect(
       screen.queryByText("예상 기준 중위소득 130.0%"),
@@ -34,6 +35,7 @@ describe("PolicyFinder", () => {
     await user.type(screen.getByLabelText("생년월일"), "1992-05-10");
     await user.click(screen.getByRole("button", { name: "다음" }));
     await user.type(screen.getByLabelText(/본인 연소득/), "4000");
+    await user.type(screen.getByLabelText(/가구원 수/), "1");
     await user.click(screen.getByRole("button", { name: "다음" }));
     await user.click(screen.getByRole("button", { name: "내 혜택 결과 보기" }));
 
@@ -43,7 +45,7 @@ describe("PolicyFinder", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("기혼 사용자가 둘째 자녀를 입력하면 4인 가구로 추정한다", async () => {
+  it("직접 입력한 가구원 수로 중위소득을 계산한다", async () => {
     const user = userEvent.setup();
     vi.stubGlobal("scrollTo", vi.fn());
     render(<PolicyFinder />);
@@ -54,6 +56,7 @@ describe("PolicyFinder", () => {
     await user.click(screen.getByRole("button", { name: "다음" }));
     await user.type(screen.getByLabelText(/본인 연소득/), "4000");
     await user.type(screen.getByLabelText(/배우자 연소득/), "3000");
+    await user.type(screen.getByLabelText(/가구원 수/), "3");
     await user.click(screen.getByLabelText("자녀가 있어요"));
     await user.type(
       screen.getByLabelText("가장 어린 자녀 생년월일"),
@@ -63,9 +66,9 @@ describe("PolicyFinder", () => {
     await user.click(screen.getByRole("button", { name: "다음" }));
     await user.click(screen.getByRole("button", { name: "내 혜택 결과 보기" }));
 
-    expect(screen.getByText("2026년 · 4인 가구 추정")).toBeInTheDocument();
+    expect(screen.getByText("2026년 · 3인 가구 기준")).toBeInTheDocument();
     expect(
-      screen.getByText("예상 기준 중위소득 89.8%"),
+      screen.getByText("예상 기준 중위소득 108.9%"),
     ).toBeInTheDocument();
   });
 });

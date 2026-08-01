@@ -18,6 +18,7 @@ type FormState = {
   plannedMarriageDate: string;
   applicantIncome: string;
   spouseIncome: string;
+  householdSize: string;
   hasChild: boolean;
   childBirthDate: string;
   childBirthOrder: string;
@@ -36,6 +37,7 @@ const initialForm: FormState = {
   plannedMarriageDate: "",
   applicantIncome: "",
   spouseIncome: "",
+  householdSize: "",
   hasChild: false,
   childBirthDate: "",
   childBirthOrder: "1",
@@ -94,6 +96,8 @@ function buildProfile(form: FormState): PolicyProfile {
       form.maritalStatus === "married" || form.maritalStatus === "planned"
         ? won(form.spouseIncome)
         : undefined,
+    householdSize:
+      form.householdSize === "" ? undefined : Number(form.householdSize),
     householdNetAssets: won(form.netAssets),
     householdMembers: [],
     children:
@@ -246,13 +250,13 @@ export function PolicyFinder() {
         <section className="result-list" aria-live="polite">
           {incomeEstimate?.householdMedianIncomeRatio !== undefined && (
             <aside className="median-income-card">
-              <span>2026년 · {incomeEstimate.householdSize}인 가구 추정</span>
+              <span>2026년 · {incomeEstimate.householdSize}인 가구 기준</span>
               <strong>
                 예상 기준 중위소득{" "}
                 {incomeEstimate.householdMedianIncomeRatio.toFixed(1)}%
               </strong>
               <p>
-                입력한 연소득을 월소득으로 환산한 참고값이에요. 복지 심사는
+                입력한 가구원 수와 연소득으로 계산한 참고값이에요. 복지 심사는
                 소득·재산을 반영하므로 실제 소득인정액과 다를 수 있어요.
               </p>
             </aside>
@@ -438,6 +442,24 @@ export function PolicyFinder() {
                   />
                 </label>
               )}
+              <label>
+                가구원 수 <small>본인 포함</small>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="예: 3"
+                  required
+                  value={form.householdSize}
+                  onChange={(event) =>
+                    update("householdSize", event.target.value)
+                  }
+                />
+              </label>
+              <p className="field-help">
+                본인을 포함해 현재 함께 생활하는 인원을 입력해 주세요.
+                한부모·조부모 동거 등 실제 가구 구성을 그대로 반영해요.
+              </p>
               <label className="check-label">
                 <input
                   type="checkbox"

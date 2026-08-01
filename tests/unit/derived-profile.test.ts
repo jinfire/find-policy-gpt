@@ -56,11 +56,12 @@ describe("deriveProfile", () => {
     expect(result.hasChildBornWithin2Years).toBe(true);
   });
 
-  it("막내 출생 순위로 전체 자녀 수를 추정해 가구원 수에 반영한다", () => {
+  it("직접 입력한 가구원 수를 가족관계 추정보다 우선한다", () => {
     const result = deriveProfile(
       {
         birthDate: "1990-01-01",
         maritalStatus: "married",
+        householdSize: 3,
         residence: { sidoCode: "11", sigunguCode: "11680" },
         householdMembers: [],
         children: [
@@ -75,7 +76,7 @@ describe("deriveProfile", () => {
     );
 
     expect(result.childCount).toBe(2);
-    expect(result.householdSize).toBe(4);
+    expect(result.householdSize).toBe(3);
   });
 
   it("거주지 코드로 수도권 여부를 계산한다", () => {

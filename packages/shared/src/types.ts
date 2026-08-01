@@ -35,6 +35,7 @@ export type UserProfile = {
   plannedMarriageDate?: string;
   applicantIncomeAnnual?: number;
   spouseIncomeAnnual?: number;
+  householdSize?: number;
   householdNetAssets?: number;
   householdMembers: HouseholdMember[];
   children: ChildProfile[];

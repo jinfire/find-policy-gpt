@@ -145,7 +145,7 @@ export function deriveProfile(
     (count, child) => Math.max(count, child.birthOrder ?? 0),
     profile.children.length,
   );
-  const householdSize =
+  const inferredHouseholdSize =
     1 +
     (profile.maritalStatus === "married" ||
     profile.spouseIncomeAnnual !== undefined
@@ -153,6 +153,12 @@ export function deriveProfile(
       : 0) +
     profile.householdMembers.length +
     childCount;
+  const householdSize =
+    typeof profile.householdSize === "number" &&
+    Number.isInteger(profile.householdSize) &&
+    profile.householdSize >= 1
+      ? profile.householdSize
+      : inferredHouseholdSize;
 
   return {
     ...profile,
