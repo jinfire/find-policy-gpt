@@ -8,9 +8,11 @@
 - [전체 정책 범위 전략](./policy-scope.md)
 - [사용자 입력 설계](./user-input-schema.md)
 - [정책 DB 설계](./database-design.md)
+- [정부24 전체 혜택 동기화](./catalog-sync.md)
 - [3값 룰 엔진 설계](./rule-engine.md)
 - [중복 질문 방지 결정](./decisions/0001-ask-once-derive-reuse.md)
 - [MVP 구현과 개인정보 범위 결정](./decisions/0002-mvp-implementation.md)
+- [전국 카탈로그와 정기 검토 주기 결정](./decisions/0003-national-catalog-and-review-cycle.md)
 - [현재 진행 상황](../progress.md)
 - [남은 작업](../todo.md)
 

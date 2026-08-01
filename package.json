@@ -19,7 +19,7 @@
     "catalog:apply:local": "wrangler d1 execute DB --local --file=.local/gov24-catalog.sql --config wrangler.catalog.jsonc",
     "catalog:sync:local": "npm run db:migrate:local && npm run catalog:sync && npm run catalog:apply:local",
     "policy:links": "node scripts/check-policy-links.mjs",
-    "policy:freshness": "node scripts/check-policy-freshness.mjs"
+    "policy:freshness": "tsx scripts/check-policy-freshness.ts"
   },
   "dependencies": {
     "ajv": "^8.17.1",
