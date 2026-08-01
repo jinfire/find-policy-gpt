@@ -22,7 +22,7 @@ npm install
 npm run dev
 ```
 
-브라우저에서 `http://localhost:3000`을 연다.
+브라우저에서 `http://localhost:3002`를 연다.
 
 정부24 전체 카탈로그 적재는 [동기화 안내](./docs/catalog-sync.md)를 따른다.
 

@@ -1,106 +1,66 @@
 # 저장소 폴더 구조
 
-## 결정
-
-초기 구조는 웹, API, 정책 룰, DB, 수집 데이터의 책임을 분리한 모노레포로 잡는다. 아직 프레임워크를 정하지 않았으므로 특정 언어에 종속된 설정 파일은 만들지 않았다.
+## 현재 구조
 
 ```text
 policy-gpt/
-├─ apps/
-│  ├─ web/
-│  │  └─ src/
-│  │     ├─ app/             # 페이지, 라우팅, 화면 조합
-│  │     ├─ components/      # 공통 UI
-│  │     ├─ features/        # 프로필 입력, 정책 결과 등 기능 단위
-│  │     └─ lib/             # API 클라이언트, 포맷터
-│  └─ api/
-│     └─ src/
-│        ├─ routes/           # HTTP 엔드포인트
-│        ├─ services/         # 정책 검색과 매칭 유스케이스
-│        └─ repositories/     # DB 접근
+├─ app/
+│  ├─ api/catalog/route.ts        # 전체 카탈로그 D1 검색 API
+│  ├─ components/
+│  │  ├─ PolicyFinder.tsx         # 프로필 입력과 정밀 추천
+│  │  └─ CatalogSearch.tsx        # 1만여 개 원문 검색
+│  ├─ globals.css
+│  └─ page.tsx
 ├─ packages/
-│  ├─ policy-engine/
-│  │  └─ src/                # 3값 룰 평가기와 설명 생성
-│  ├─ shared/
-│  │  └─ src/                # 공용 타입, 입력 필드 코드
-│  └─ db/
-│     └─ migrations/         # PostgreSQL 마이그레이션
+│  ├─ policy-catalog/src/         # 정부24 수집·정규화·검색·upsert SQL
+│  ├─ policy-data/src/            # 검수된 10개 정책 JSON 로더·검증
+│  ├─ policy-engine/src/          # 파생값·중위소득·룰·추천
+│  ├─ policy-ops/src/             # 6월·12월 검토 주기
+│  └─ shared/src/                 # 공용 프로필·조건·결과 타입
 ├─ data/
-│  ├─ raw/                   # 수집한 원문 스냅샷
-│  ├─ normalized/            # 검토 전 정규화 데이터
-│  └─ seeds/                 # 승인된 개발·초기 적재 데이터
+│  ├─ policies/                   # 검수된 정책 JSON 10개
+│  └─ schema/                     # 정책 JSON Schema
+├─ db/
+│  ├─ schema.ts                   # D1/SQLite Drizzle 테이블
+│  └─ index.ts                    # Cloudflare D1 바인딩
+├─ drizzle/                       # 버전 있는 D1 마이그레이션
 ├─ scripts/
-│  ├─ collect/               # 공식 출처 수집
-│  ├─ normalize/             # 원문을 공통 구조로 변환
-│  └─ validate/              # 링크, 필수 필드, 룰 검증
-├─ tests/
-│  ├─ unit/                  # 룰 연산자 단위 테스트
-│  ├─ integration/           # API와 DB 통합 테스트
-│  └─ fixtures/              # 사용자·정책 시나리오
+│  ├─ sync-gov24-catalog.ts       # 전체 정책 수집·SQL 생성
+│  ├─ check-policy-freshness.ts   # 반기 검토 최신성 검사
+│  ├─ check-policy-links.mjs      # 공식 링크 검사
+│  └─ generate-policy-seed.mjs    # 10개 정밀 정책 seed 생성
+├─ tests/unit/                    # 룰·UI·API 계약·DB·운영 테스트
 ├─ docs/
-│  ├─ decisions/             # 기술·제품 의사결정 기록
-│  ├─ product-brief.md
-│  ├─ policy-research.md
-│  ├─ user-input-schema.md
+│  ├─ decisions/                  # ADR 의사결정 기록
+│  ├─ catalog-sync.md
 │  ├─ database-design.md
-│  └─ rule-engine.md
+│  └─ ...
+├─ worker/index.ts                # Cloudflare/vinext 실행 진입점
+├─ wrangler.catalog.jsonc         # 로컬 D1 관리 전용 설정
 ├─ progress.md
 └─ todo.md
 ```
 
+## 책임 경계
+
+- `PolicyFinder`: 브라우저 메모리의 사용자 프로필로 검수된 정책만 정밀 추천한다.
+- `CatalogSearch`: D1에 동기화된 전체 공식 원문을 검색한다. 자격 확정 결과로 표현하지 않는다.
+- `policy-catalog`: API 인증키를 UI나 DB에 전달하지 않고 서버 측 수집에만 사용한다.
+- `policy-engine`: DB와 HTTP에 의존하지 않는 순수 규칙 평가기다.
+- `policy-data`: 사람이 확인한 `rule_ready` JSON의 계약과 출처를 검증한다.
+- `db`: 원본, 검수 정책, 사용자 매칭의 세 데이터 층을 분리한다.
+- `.local`: 전체 API 스냅샷과 생성 SQL을 두며 Git에 올리지 않는다.
+
 ## 데이터 흐름
 
 ```text
-공식 사이트
-  → data/raw
-  → scripts/normalize
-  → data/normalized
-  → 사람 검수
-  → data/seeds 또는 관리자 승인 API
-  → PostgreSQL의 새 policy_version
-  → 룰 검증
-  → 공개
+정부24 API
+  → 목록·상세·지원조건 전체 수집
+  → 서비스ID 기준 병합
+  → source_catalog_services (search_only)
+  → 전체 원문 검색
+  → 사람 검수 + 조건 트리 + 테스트
+  → policies / policy_versions (rule_ready)
+  → 사용자 프로필 룰 매칭
+  → 추천 이유가 있는 정밀 결과
 ```
-
-## 영역별 경계
-
-### `apps/web`
-
-사용자 정보 입력과 결과 설명을 담당한다. 정책 조건을 프론트엔드에 하드코딩하지 않는다.
-
-### `apps/api`
-
-프로필 저장, 후보 정책 조회, 룰 엔진 호출, 정책 상세 제공을 담당한다. 웹 이외의 앱이 생겨도 같은 API를 재사용할 수 있게 한다.
-
-### `packages/policy-engine`
-
-순수 함수 형태의 평가기다. DB나 HTTP에 직접 의존하지 않고 `사용자 답변 + 정책 룰`을 받아 결과와 근거를 반환한다.
-
-### `packages/shared`
-
-`birth_date`, `household_income_annual` 같은 표준 필드 코드와 API 계약을 둔다. 웹, API, 수집 스크립트에서 같은 명칭을 사용하게 한다.
-
-### `packages/db`
-
-스키마와 마이그레이션만 관리한다. 운영 DB 데이터를 파일에 직접 복사하지 않는다.
-
-### `data`
-
-- `raw`: 출처 URL, 수집 시각, 원문 해시가 있는 변경 불가 스냅샷
-- `normalized`: 자동 변환됐지만 아직 승인되지 않은 데이터
-- `seeds`: 검수된 개발용 표본 데이터
-
-개인 사용자 정보는 `data` 폴더에 저장하지 않는다.
-
-## 제안하는 초기 기술 조합
-
-구현을 시작할 때 한 번 결정한다.
-
-- 웹: Next.js + TypeScript
-- API: Next.js Route Handler 또는 별도 TypeScript API
-- DB: PostgreSQL
-- ORM: Drizzle 또는 Prisma
-- 룰 검증: JSON Schema + TypeScript
-- 배치: GitHub Actions 또는 관리형 스케줄러
-
-MVP 속도를 우선하면 웹과 API를 하나의 Next.js 앱으로 먼저 구현해도 된다. 다만 정책 엔진과 DB 패키지 경계는 유지하는 편이 좋다.
