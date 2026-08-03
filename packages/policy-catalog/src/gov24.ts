@@ -175,7 +175,7 @@ export function normalizeGov24Catalog({
           stringValue(detail, "문의처") ?? stringValue(list, "전화문의"),
         viewCount: numberValue(list, "조회수"),
         scope:
-          providerType && /지방|교육청/.test(providerType)
+          providerType && /시군구|광역시도|교육청|지방/.test(providerType)
             ? ("regional" as const)
             : ("national" as const),
         conditionCodes,

@@ -12,6 +12,7 @@ import {
 
 type FormState = {
   birthDate: string;
+  gender: "" | "male" | "female";
   sidoCode: string;
   maritalStatus: "single" | "married" | "planned";
   marriageDate: string;
@@ -31,6 +32,7 @@ type FormState = {
 
 const initialForm: FormState = {
   birthDate: "",
+  gender: "",
   sidoCode: "11",
   maritalStatus: "single",
   marriageDate: "",
@@ -73,6 +75,33 @@ const regions = [
   ["48", "경남"],
   ["50", "제주"],
 ];
+
+type CatalogRecommendation = {
+  id: string;
+  name: string;
+  summary: string;
+  providerName: string;
+  audienceType: string | null;
+  serviceField: string | null;
+  supportType: string | null;
+  benefitText: string | null;
+  scope: "national" | "regional";
+  detailUrl: string | null;
+  onlineApplicationUrl: string | null;
+  reasons: string[];
+  additionalChecks: string[];
+  score: number;
+};
+
+type CatalogMatchState =
+  | { status: "idle" | "loading" }
+  | { status: "error"; message: string }
+  | {
+      status: "success";
+      catalogCount: number;
+      candidateCount: number;
+      results: CatalogRecommendation[];
+    };
 
 function won(value: string): number | undefined {
   return value === "" ? undefined : Number(value) * 10_000;
@@ -190,10 +219,80 @@ function RecommendationCard({
   );
 }
 
+function CatalogRecommendationCard({
+  recommendation,
+}: {
+  recommendation: CatalogRecommendation;
+}) {
+  const officialUrl =
+    recommendation.onlineApplicationUrl ?? recommendation.detailUrl;
+
+  return (
+    <article className="result-card catalog-candidate">
+      <div className="result-head">
+        <div>
+          <span className="policy-type">
+            {recommendation.serviceField ?? "정부24 정책"}
+          </span>
+          <h3>{recommendation.name}</h3>
+        </div>
+        <span className="status-badge">
+          <b aria-hidden="true">✓</b> 1차 조건 후보
+        </span>
+      </div>
+      <p className="policy-summary">{recommendation.summary}</p>
+
+      <div className="reason-box">
+        <strong>추천한 이유</strong>
+        <ul>
+          {recommendation.reasons.slice(0, 4).map((reason) => (
+            <li key={reason}>
+              <span aria-hidden="true">✓</span>
+              {reason}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="check-box">
+        <strong>신청 전에 확인할 내용</strong>
+        <ul>
+          {recommendation.additionalChecks.slice(0, 3).map((check) => (
+            <li key={check}>{check}</li>
+          ))}
+        </ul>
+      </div>
+
+      {recommendation.benefitText && (
+        <div className="benefit">
+          <span>지원 내용</span>
+          <p>{recommendation.benefitText}</p>
+        </div>
+      )}
+      <div className="catalog-candidate-foot">
+        <span>{recommendation.providerName}</span>
+        {officialUrl && (
+          <a
+            className="official-link"
+            href={officialUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            공식 사이트에서 확인하기 <span aria-hidden="true">↗</span>
+          </a>
+        )}
+      </div>
+    </article>
+  );
+}
+
 export function PolicyFinder() {
   const [form, setForm] = useState(initialForm);
   const [step, setStep] = useState(1);
   const [results, setResults] = useState<PolicyRecommendation[] | null>(null);
+  const [catalogMatch, setCatalogMatch] = useState<CatalogMatchState>({
+    status: "idle",
+  });
 
   const incomeEstimate = useMemo(() => {
     if (!form.birthDate) return undefined;
@@ -211,7 +310,55 @@ export function PolicyFinder() {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    setResults(recommendPolicies(buildProfile(form)));
+    const profile = buildProfile(form);
+    const derived = deriveProfile(profile);
+    setResults(recommendPolicies(profile));
+    setCatalogMatch({ status: "loading" });
+
+    const residenceSidoName = regions.find(([code]) => code === form.sidoCode)?.[1];
+    const requestBody = {
+      age: derived.age,
+      ...(form.gender ? { gender: form.gender } : {}),
+      ...(derived.householdMedianIncomeRatio !== undefined
+        ? { householdMedianIncomeRatio: derived.householdMedianIncomeRatio }
+        : {}),
+      householdSize: derived.householdSize,
+      childCount: derived.childCount,
+      hasChildren: derived.childCount > 0,
+      jobSeeking: derived.jobSeeking,
+      ...(derived.householdHomeCount !== undefined
+        ? { householdHomeCount: derived.householdHomeCount }
+        : {}),
+      ...(residenceSidoName ? { residenceSidoName } : {}),
+    };
+
+    void fetch("/api/catalog/recommendations", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(requestBody),
+    })
+      .then(async (response) => {
+        const payload = (await response.json()) as
+          | {
+              catalogCount: number;
+              candidateCount: number;
+              results: CatalogRecommendation[];
+            }
+          | { error?: string };
+        if (!response.ok || !("results" in payload)) {
+          throw new Error("error" in payload ? payload.error : undefined);
+        }
+        setCatalogMatch({ status: "success", ...payload });
+      })
+      .catch((error: unknown) => {
+        setCatalogMatch({
+          status: "error",
+          message:
+            error instanceof Error && error.message
+              ? error.message
+              : "전체 정책 조건 매칭을 불러오지 못했습니다.",
+        });
+      });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -233,7 +380,13 @@ export function PolicyFinder() {
           <span className="top-note">정부 공식 출처 기반</span>
         </header>
         <section className="results-hero">
-          <button className="back-button" onClick={() => setResults(null)}>
+          <button
+            className="back-button"
+            onClick={() => {
+              setResults(null);
+              setCatalogMatch({ status: "idle" });
+            }}
+          >
             ← 입력 수정하기
           </button>
           <p className="eyebrow">맞춤 탐색 완료</p>
@@ -261,16 +414,60 @@ export function PolicyFinder() {
               </p>
             </aside>
           )}
+          <div className="result-section-heading">
+            <span>정밀 조건 정책</span>
+            <h2>직접 검토한 주요 정책</h2>
+            <p>세부 규칙까지 구조화한 10개 정책의 맞춤 결과예요.</p>
+          </div>
           {results.map((result) => (
             <RecommendationCard
               key={result.policy.versionId}
               recommendation={result}
             />
           ))}
+          <section className="catalog-match-section" aria-live="polite">
+            {catalogMatch.status === "loading" && (
+              <div className="catalog-match-message">
+                <strong>정부24 전체 정책을 조건별로 비교하고 있어요</strong>
+                <p>연령·소득·가구·생애상황 조건을 확인 중입니다.</p>
+              </div>
+            )}
+            {catalogMatch.status === "error" && (
+              <div className="catalog-match-message error">
+                <strong>전체 정책 조건 매칭을 불러오지 못했어요</strong>
+                <p>{catalogMatch.message}</p>
+              </div>
+            )}
+            {catalogMatch.status === "success" && (
+              <>
+                <div className="result-section-heading catalog-heading">
+                  <span>정부24 전체 DB 1차 매칭</span>
+                  <h2>
+                    {catalogMatch.catalogCount.toLocaleString("ko-KR")}개 전체 정책 중{" "}
+                    {catalogMatch.candidateCount.toLocaleString("ko-KR")}개가 기본 조건을
+                    통과했어요
+                  </h2>
+                  <p>
+                    조건 일치도가 높은 순서로 최대 50개를 보여드려요. 원문에만 있는
+                    세부 기준은 반드시 공식 사이트에서 확인해주세요.
+                  </p>
+                </div>
+                {catalogMatch.results.map((recommendation) => (
+                  <CatalogRecommendationCard
+                    key={recommendation.id}
+                    recommendation={recommendation}
+                  />
+                ))}
+              </>
+            )}
+          </section>
           <p className="disclaimer">
             추천 결과는 입력 정보에 따른 사전 안내입니다. 실제 선정 여부,
             금리와 한도는 정책 시행기관의 최신 공고와 심사 결과를 따릅니다.
             기준 확인일 2026.07.30
+            <br />
+            원본 입력값은 브라우저에서 계산하고, 매칭용 파생값만 서버로 보내며
+            저장하지 않습니다.
           </p>
         </section>
       </main>
@@ -302,7 +499,7 @@ export function PolicyFinder() {
           </p>
           <div className="trust-row">
             <span>✓ AI 추측 없이 조건 매칭</span>
-            <span>✓ 입력값은 브라우저에서만 사용</span>
+            <span>✓ 원본 입력값은 브라우저에서 계산</span>
           </div>
         </div>
 
@@ -335,6 +532,19 @@ export function PolicyFinder() {
                   value={form.birthDate}
                   onChange={(event) => update("birthDate", event.target.value)}
                 />
+              </label>
+              <label>
+                성별 <small>선택 · 일부 정책 조건 확인용</small>
+                <select
+                  value={form.gender}
+                  onChange={(event) =>
+                    update("gender", event.target.value as FormState["gender"])
+                  }
+                >
+                  <option value="">선택하지 않음</option>
+                  <option value="female">여성</option>
+                  <option value="male">남성</option>
+                </select>
               </label>
               <label>
                 현재 거주 지역
@@ -580,7 +790,8 @@ export function PolicyFinder() {
                 </button>
               </div>
               <p className="privacy-note">
-                🔒 입력 정보는 서버에 저장하지 않고 이번 조회에만 사용합니다.
+                🔒 원본 입력값은 브라우저에서 계산하고, 매칭용 파생값만 서버로
+                보내며 저장하지 않습니다.
               </p>
             </fieldset>
           )}

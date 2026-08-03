@@ -174,6 +174,13 @@ function matchesResidence(
     .some((text) => text.includes(residenceSidoName));
 }
 
+function compactText(value: string, maxLength: number): string {
+  const compacted = value.replace(/\s+/g, " ").trim();
+  return compacted.length > maxLength
+    ? `${compacted.slice(0, maxLength)}…`
+    : compacted;
+}
+
 export function recommendGov24Services(
   services: Gov24RecommendationService[],
   input: Gov24RecommendationInput,
@@ -193,12 +200,14 @@ export function recommendGov24Services(
         {
           id: service.id,
           name: service.name,
-          summary: service.summary,
+          summary: compactText(service.summary, 300),
           providerName: service.providerName,
           audienceType: service.audienceType,
           serviceField: service.serviceField,
           supportType: service.supportType,
-          benefitText: service.benefitText,
+          benefitText: service.benefitText
+            ? compactText(service.benefitText, 500)
+            : null,
           scope: service.scope,
           detailUrl: service.detailUrl,
           onlineApplicationUrl: service.onlineApplicationUrl,
@@ -208,10 +217,11 @@ export function recommendGov24Services(
               : ["정부24 구조화 조건에서 입력 정보와 충돌하는 항목이 없습니다."],
           additionalChecks,
           score: match.score,
-          popularity: service.viewCount ?? 0,
         },
       ];
     })
-    .sort((left, right) => right.score - left.score || right.popularity - left.popularity)
-    .map(({ popularity: _popularity, ...recommendation }) => recommendation);
+    .sort(
+      (left, right) =>
+        right.score - left.score || left.name.localeCompare(right.name, "ko"),
+    );
 }

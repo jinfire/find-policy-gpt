@@ -120,4 +120,20 @@ describe("정부24 전체 정책 추천", () => {
       parseGov24RecommendationInput({ age: 30, residenceSidoName: "임의지역" }),
     ).toThrow("거주 지역");
   });
+
+  it("긴 정부 원문은 결과 카드용 길이로 줄여 반환한다", () => {
+    const [recommendation] = recommendGov24Services(
+      [service({ summary: "요".repeat(500), benefitText: "혜".repeat(1_000) })],
+      {
+        age: 30,
+        householdMedianIncomeRatio: 85,
+        jobSeeking: true,
+        residenceSidoName: "서울",
+      },
+    );
+
+    expect(recommendation.summary.length).toBeLessThanOrEqual(301);
+    expect(recommendation.benefitText?.length).toBeLessThanOrEqual(501);
+    expect(recommendation.benefitText).toMatch(/…$/);
+  });
 });

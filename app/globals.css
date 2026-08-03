@@ -106,6 +106,10 @@ input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rg
 .back-button { padding: 0; margin-bottom: 50px; border: 0; color: var(--muted); background: none; cursor: pointer; }
 .result-list { max-width: 900px; margin: 0 auto; padding: 0 28px 100px; }
 .result-list > .median-income-card { margin: 0 0 18px; }
+.result-section-heading { margin: 42px 0 4px; }
+.result-section-heading > span { color: var(--green); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.result-section-heading h2 { margin: 7px 0 0; font-size: 28px; letter-spacing: -.04em; }
+.result-section-heading p { margin: 8px 0 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .result-card { margin-top: 18px; padding: 28px; border: 1px solid var(--line); border-radius: 20px; background: white; box-shadow: 0 12px 34px rgba(20, 37, 28, .06); }
 .result-card.eligible { border-top: 4px solid var(--green); }
 .result-card.needs_review { border-top: 4px solid #d9a327; }
@@ -126,6 +130,16 @@ input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rg
 .benefit span { color: var(--muted); font-size: 12px; font-weight: 700; }
 .benefit p { margin: 6px 0 0; font-weight: 700; line-height: 1.5; }
 .official-link { display: inline-flex; gap: 6px; color: var(--green); font-size: 14px; font-weight: 800; text-decoration: none; }
+.catalog-match-section { margin-top: 64px; padding-top: 2px; border-top: 1px solid var(--line); }
+.catalog-heading { margin-top: 44px; }
+.catalog-candidate { border-top: 4px solid #78a692; }
+.catalog-candidate .status-badge { color: #225c48; background: #e9f3ee; }
+.catalog-candidate-foot { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 22px; }
+.catalog-candidate-foot > span { color: var(--muted); font-size: 12px; font-weight: 700; }
+.catalog-match-message { margin-top: 40px; padding: 24px; border-radius: 16px; background: #f1f8f4; }
+.catalog-match-message strong { font-size: 16px; }
+.catalog-match-message p { margin: 7px 0 0; color: var(--muted); font-size: 13px; }
+.catalog-match-message.error { color: #8c372f; background: #fff0ee; }
 .disclaimer { margin-top: 28px; color: #78817b; font-size: 12px; line-height: 1.7; text-align: center; }
 
 @media (max-width: 800px) {
@@ -142,6 +156,7 @@ input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rg
   .results-hero, .result-list { padding-left: 20px; padding-right: 20px; }
   .result-head { flex-direction: column; }
   .status-badge { align-self: flex-start; }
+  .catalog-candidate-foot { align-items: flex-start; flex-direction: column; }
 }
 
 @media (prefers-reduced-motion: reduce) {
