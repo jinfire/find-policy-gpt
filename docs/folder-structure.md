@@ -5,7 +5,7 @@
 ```text
 policy-gpt/
 ├─ app/
-│  ├─ api/catalog/route.ts        # 전체 카탈로그 D1 검색 API
+│  ├─ api/catalog/                # 전체 검색·조건 후보 API
 │  ├─ components/
 │  │  ├─ PolicyFinder.tsx         # 프로필 입력과 정밀 추천
 │  │  └─ CatalogSearch.tsx        # 1만여 개 원문 검색
@@ -43,7 +43,7 @@ policy-gpt/
 
 ## 책임 경계
 
-- `PolicyFinder`: 브라우저 메모리의 사용자 프로필로 검수된 정책만 정밀 추천한다.
+- `PolicyFinder`: 검수된 정책을 정밀 추천하고, 파생 프로필로 전체 카탈로그 1차 후보를 요청한다.
 - `CatalogSearch`: D1에 동기화된 전체 공식 원문을 검색한다. 자격 확정 결과로 표현하지 않는다.
 - `policy-catalog`: API 인증키를 UI나 DB에 전달하지 않고 서버 측 수집에만 사용한다.
 - `policy-engine`: DB와 HTTP에 의존하지 않는 순수 규칙 평가기다.
@@ -57,8 +57,8 @@ policy-gpt/
 정부24 API
   → 목록·상세·지원조건 전체 수집
   → 서비스ID 기준 병합
-  → source_catalog_services (search_only)
-  → 전체 원문 검색
+  → source_catalog_services (partially_structured)
+  → 전체 원문 검색 + 기본 조건 후보
   → 사람 검수 + 조건 트리 + 테스트
   → policies / policy_versions (rule_ready)
   → 사용자 프로필 룰 매칭

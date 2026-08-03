@@ -13,6 +13,7 @@ MVP는 생성형 AI가 아닌 검수된 정책 데이터와 규칙 기반 매칭
 - 추천 이유·추가 확인 조건·공식 신청 링크 제공
 - 2026년 가구원 수별 예상 기준 중위소득 비율 계산
 - 정부24 전체 혜택 1만여 건 수집·정규화·D1 upsert 파이프라인
+- 실제 10,964건의 공식 조건 코드 기반 1차 후보 추천과 이유 표시
 - 사용자 결과에서는 가능성 낮은 정책을 제외
 
 ## 로컬 실행
@@ -38,4 +39,5 @@ npm run dev
 - [정책 DB 설계](./docs/database-design.md)
 - [정부24 전체 혜택 동기화](./docs/catalog-sync.md)
 - [룰 엔진 설계](./docs/rule-engine.md)
+- [전체 정책 부분 조건 매칭 결정](./docs/decisions/0004-gov24-partial-eligibility-matching.md)
 - [전체 문서 인덱스](./docs/README.md)

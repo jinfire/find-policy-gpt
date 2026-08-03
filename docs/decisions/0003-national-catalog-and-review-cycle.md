@@ -1,5 +1,7 @@
 # ADR 0003: 전국 카탈로그와 정기 검토 주기
 
+> 전체 원본의 `search_only` 범위와 추천 화면 결정은 [ADR 0004](./0004-gov24-partial-eligibility-matching.md)에서 `partially_structured` 1차 후보로 확장됐다. 반기 검토와 `rule_ready` 승인 원칙은 유지한다.
+
 - 상태: 승인
 - 결정일: 2026-08-01
 

@@ -1,5 +1,7 @@
 # 2026-08-01 구현·결정 요약
 
+> 이 문서는 2026-08-01 시점 기록이다. 2026-08-03에 전체 10,964건을 `partially_structured` 조건 후보로 확장했다. 현재 상태는 [progress.md](../progress.md)와 [ADR 0004](./decisions/0004-gov24-partial-eligibility-matching.md)를 따른다.
+
 ## 제품 결정
 
 1. 유명한 정책만 다루지 않고 정부24의 전체 1만여 개 원본을 수집·검색한다.
