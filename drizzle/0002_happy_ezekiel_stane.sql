@@ -1,0 +1,1 @@
+ALTER TABLE `source_catalog_services` ADD `eligibility_profile` text DEFAULT '{"genders":[],"medianIncomeBands":[],"personalConditionCodes":[],"householdConditionCodes":[],"businessStatusCodes":[],"businessIndustryCodes":[],"organizationTypeCodes":[],"organizationIndustryCodes":[]}' NOT NULL;

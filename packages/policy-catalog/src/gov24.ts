@@ -1,3 +1,8 @@
+import {
+  parseGov24Eligibility,
+  type Gov24EligibilityProfile,
+} from "./eligibility";
+
 const GOV24_API_BASE_URL = "https://api.odcloud.kr/api/gov24/v3";
 
 type Gov24Row = Record<string, unknown>;
@@ -37,10 +42,11 @@ export type SourceCatalogService = {
   viewCount?: number;
   scope: "national" | "regional";
   conditionCodes: string[];
+  eligibilityProfile: Gov24EligibilityProfile;
   legalBasis: string[];
   rawPayload: Record<string, unknown>;
   contentHash: string;
-  catalogLevel: "search_only";
+  catalogLevel: "partially_structured";
   sourceRegisteredAt?: string;
   sourceModifiedAt?: string;
   firstSeenAt: string;
@@ -128,6 +134,7 @@ export function normalizeGov24Catalog({
       .filter(([code, value]) => /^JA\d{4}$/.test(code) && isSelectedCondition(value))
       .map(([code]) => code)
       .sort();
+    const eligibilityProfile = parseGov24Eligibility(condition ?? {});
     const legalBasis = ["법령", "자치법규", "행정규칙"]
       .map((key) => stringValue(detail, key))
       .filter((value): value is string => value !== undefined);
@@ -172,10 +179,11 @@ export function normalizeGov24Catalog({
             ? ("regional" as const)
             : ("national" as const),
         conditionCodes,
+        eligibilityProfile,
         legalBasis,
         rawPayload,
         contentHash: fingerprint(rawPayload),
-        catalogLevel: "search_only" as const,
+        catalogLevel: "partially_structured" as const,
         sourceRegisteredAt: stringValue(list, "등록일시"),
         sourceModifiedAt:
           stringValue(detail, "수정일시") ?? stringValue(list, "수정일시"),

@@ -42,5 +42,10 @@ describe("D1 database migration", () => {
       "policy_catalog_mappings",
       "source_catalog_services",
     ]);
+
+    const catalogColumns = database
+      .exec("PRAGMA table_info(source_catalog_services)")[0]
+      .values.map((row) => row[1]);
+    expect(catalogColumns).toContain("eligibility_profile");
   });
 });

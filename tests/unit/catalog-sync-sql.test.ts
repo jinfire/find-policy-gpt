@@ -14,10 +14,20 @@ const service: SourceCatalogService = {
   providerName: "예시시",
   scope: "regional",
   conditionCodes: ["JA0303"],
+  eligibilityProfile: {
+    genders: [],
+    medianIncomeBands: [],
+    personalConditionCodes: ["JA0303"],
+    householdConditionCodes: [],
+    businessStatusCodes: [],
+    businessIndustryCodes: [],
+    organizationTypeCodes: [],
+    organizationIndustryCodes: [],
+  },
   legalBasis: ["예시시 출산지원 조례"],
   rawPayload: { list: { 서비스ID: "GOV24-001" } },
   contentHash: "0123456789abcdef",
-  catalogLevel: "search_only",
+  catalogLevel: "partially_structured",
   firstSeenAt: "2026-08-01T12:00:00.000Z",
   lastSeenAt: "2026-08-01T12:00:00.000Z",
   isActive: true,
@@ -55,6 +65,15 @@ describe("전체 카탈로그 D1 적재 SQL", () => {
         },
       ),
     );
+    database.run(
+      generateCatalogSyncSql(
+        [{ ...service, summary: "변경된 요약", lastSeenAt: "2026-12-01T00:00:00.000Z" }],
+        {
+          syncRunId: "sync-2",
+          syncedAt: "2026-12-01T00:00:00.000Z",
+        },
+      ),
+    );
 
     expect(
       database.exec("SELECT COUNT(*) FROM source_catalog_services")[0].values[0][0],
@@ -62,6 +81,12 @@ describe("전체 카탈로그 D1 적재 SQL", () => {
     expect(
       database.exec("SELECT summary FROM source_catalog_services")[0].values[0][0],
     ).toBe("변경된 요약");
+    expect(
+      JSON.parse(
+        database.exec("SELECT eligibility_profile FROM source_catalog_services")[0]
+          .values[0][0] as string,
+      ),
+    ).toEqual(service.eligibilityProfile);
     expect(
       database.exec("SELECT COUNT(*) FROM catalog_sync_runs WHERE status = 'completed'")[0]
         .values[0][0],

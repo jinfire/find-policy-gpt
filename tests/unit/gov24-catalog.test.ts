@@ -47,6 +47,11 @@ describe("정부24 전체 혜택 카탈로그", () => {
         {
           서비스ID: "GOV24-001",
           서비스명: "숨은 지역 출산 지원",
+          JA0101: "Y",
+          JA0102: "Y",
+          JA0110: 20,
+          JA0111: 45,
+          JA0203: "Y",
           JA0303: "Y",
           JA0413: "N",
         },
@@ -58,8 +63,22 @@ describe("정부24 전체 혜택 카탈로그", () => {
     expect(service.name).toBe("숨은 지역 출산 지원");
     expect(service.scope).toBe("regional");
     expect(service.onlineApplicationUrl).toBe("https://apply.example.go.kr");
-    expect(service.conditionCodes).toEqual(["JA0303"]);
-    expect(service.catalogLevel).toBe("search_only");
+    expect(service.conditionCodes).toEqual([
+      "JA0101",
+      "JA0102",
+      "JA0203",
+      "JA0303",
+    ]);
+    expect(service.eligibilityProfile).toEqual(
+      expect.objectContaining({
+        genders: ["male", "female"],
+        minAge: 20,
+        maxAge: 45,
+        medianIncomeBands: ["76_100"],
+        personalConditionCodes: ["JA0303"],
+      }),
+    );
+    expect(service.catalogLevel).toBe("partially_structured");
     expect(service.contentHash).toMatch(/^[a-f0-9]{16}$/);
   });
 

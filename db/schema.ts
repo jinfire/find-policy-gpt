@@ -7,6 +7,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import type { ConditionNode } from "../packages/shared/src";
+import type { Gov24EligibilityProfile } from "../packages/policy-catalog/src/eligibility";
 
 const auditColumns = {
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -82,6 +83,19 @@ export const sourceCatalogServices = sqliteTable(
       .$type<string[]>()
       .notNull()
       .default([]),
+    eligibilityProfile: text("eligibility_profile", { mode: "json" })
+      .$type<Gov24EligibilityProfile>()
+      .notNull()
+      .default({
+        genders: [],
+        medianIncomeBands: [],
+        personalConditionCodes: [],
+        householdConditionCodes: [],
+        businessStatusCodes: [],
+        businessIndustryCodes: [],
+        organizationTypeCodes: [],
+        organizationIndustryCodes: [],
+      }),
     legalBasis: text("legal_basis", { mode: "json" })
       .$type<string[]>()
       .notNull()

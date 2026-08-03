@@ -37,6 +37,7 @@ const insertColumns = [
   "view_count",
   "scope",
   "condition_codes",
+  "eligibility_profile",
   "legal_basis",
   "raw_payload",
   "content_hash",
@@ -75,6 +76,7 @@ function serviceValues(service: SourceCatalogService): string[] {
     sqlValue(service.viewCount),
     sqlValue(service.scope),
     jsonValue(service.conditionCodes),
+    jsonValue(service.eligibilityProfile),
     jsonValue(service.legalBasis),
     jsonValue(service.rawPayload),
     sqlValue(service.contentHash),
@@ -114,7 +116,7 @@ ON CONFLICT(source_id, source_service_id) DO UPDATE SET ${updateColumns
 
   return [
     "BEGIN TRANSACTION;",
-    `INSERT INTO catalog_sync_runs (id, source_id, status, started_at, source_count) VALUES (${sqlValue(syncRunId)}, 'gov24', 'running', ${sqlValue(syncedAt)}, ${services.length});`,
+    `INSERT INTO catalog_sync_runs (id, source_id, status, started_at, source_count) VALUES (${sqlValue(syncRunId)}, 'gov24', 'running', ${sqlValue(syncedAt)}, ${services.length}) ON CONFLICT(id) DO UPDATE SET status = 'running', started_at = excluded.started_at, completed_at = NULL, source_count = excluded.source_count, upserted_count = 0, deactivated_count = 0, error_message = NULL, updated_at = CURRENT_TIMESTAMP;`,
     `UPDATE source_catalog_services SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE source_id = 'gov24';`,
     ...statements,
     `UPDATE catalog_sync_runs SET status = 'completed', completed_at = ${sqlValue(syncedAt)}, upserted_count = ${services.length}, deactivated_count = (SELECT COUNT(*) FROM source_catalog_services WHERE source_id = 'gov24' AND is_active = 0), updated_at = CURRENT_TIMESTAMP WHERE id = ${sqlValue(syncRunId)};`,
