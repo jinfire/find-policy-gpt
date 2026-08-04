@@ -11,6 +11,7 @@
 - [정부24 전체 혜택 동기화](./catalog-sync.md)
 - [전체 정책 부분 조건 매칭 결정](./decisions/0004-gov24-partial-eligibility-matching.md)
 - [전체 정책 질문 재설계](./question-redesign-2026-08-04.md)
+- [명시적 질문과 단일 추천 목록 결정](./decisions/0005-explicit-questions-and-unified-results.md)
 - [3값 룰 엔진 설계](./rule-engine.md)
 - [중복 질문 방지 결정](./decisions/0001-ask-once-derive-reuse.md)
 - [MVP 구현과 개인정보 범위 결정](./decisions/0002-mvp-implementation.md)
