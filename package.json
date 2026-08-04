@@ -16,6 +16,7 @@
     "db:migrate:local": "wrangler d1 migrations apply DB --local --config wrangler.catalog.jsonc",
     "db:seed:generate": "node scripts/generate-policy-seed.mjs",
     "catalog:sync": "tsx scripts/sync-gov24-catalog.ts",
+    "catalog:analyze-questions": "node scripts/analyze-gov24-questions.mjs",
     "catalog:apply:local": "wrangler d1 execute DB --local --file=.local/gov24-catalog.sql --config wrangler.catalog.jsonc",
     "catalog:sync:local": "npm run db:migrate:local && npm run catalog:sync && npm run catalog:apply:local",
     "policy:links": "node scripts/check-policy-links.mjs",
