@@ -167,6 +167,25 @@ describe("정부24 전체 정책 추천", () => {
     ).toHaveLength(1);
   });
 
+  it("같은 이름의 시군구라도 시도가 다르면 추천하지 않는다", () => {
+    const busanGangseo = service({
+      id: "gov24:busan-gangseo",
+      providerName: "부산광역시 강서구",
+      providerType: "시군구",
+      scope: "regional",
+    });
+
+    expect(
+      recommendGov24Services([busanGangseo], {
+        age: 30,
+        householdMedianIncomeRatio: 85,
+        jobSeeking: true,
+        residenceSidoName: "서울",
+        residenceSigunguName: "강서구",
+      }),
+    ).toHaveLength(0);
+  });
+
   it("정책 원문이 3자녀 이상을 요구하면 자녀 2명 가구를 제외한다", () => {
     const threeChildren = service({
       id: "gov24:three-children",
@@ -252,6 +271,30 @@ describe("정부24 전체 정책 추천", () => {
     );
   });
 
+  it("교직원 전용 정책은 일반 근로자를 제외한다", () => {
+    const educationEmployee = service({
+      id: "gov24:education-employee",
+      name: "교직원 생활안정 지원",
+      targetText: "교육기관에 재직 중인 교직원",
+      eligibilityProfile: parseGov24Eligibility({ JA0326: "Y" }),
+    });
+
+    expect(
+      recommendGov24Services([educationEmployee], {
+        age: 40,
+        occupation: "employee",
+        residenceSidoName: "서울",
+      }),
+    ).toHaveLength(0);
+    expect(
+      recommendGov24Services([educationEmployee], {
+        age: 40,
+        occupation: "teacher",
+        residenceSidoName: "서울",
+      })[0].reasons,
+    ).toContain("교사·교직원 대상 조건과 일치합니다.");
+  });
+
   it("사용자 답변과 일치하는 추천 근거가 하나도 없는 정책은 노출하지 않는다", () => {
     const generic = service({
       id: "gov24:generic",
@@ -268,6 +311,37 @@ describe("정부24 전체 정책 추천", () => {
         residenceSigunguName: "마포구",
       }),
     ).toHaveLength(0);
+  });
+
+  it("연령이나 소득 하나만 넓게 맞는 정책은 추천에서 제외한다", () => {
+    const ageOnly = service({
+      id: "gov24:age-only",
+      name: "일반 성인 생활 정보",
+      targetText: "만 19세 이상 성인",
+      criteriaText: null,
+      eligibilityProfile: parseGov24Eligibility({ JA0110: 19 }),
+    });
+    const multiChild = service({
+      id: "gov24:multi-child",
+      name: "2자녀 이상 가정 지원",
+      targetText: "자녀가 2명 이상인 가정",
+      criteriaText: null,
+      eligibilityProfile: parseGov24Eligibility({}),
+    });
+
+    expect(
+      recommendGov24Services([ageOnly], {
+        age: 35,
+        residenceSidoName: "서울",
+      }),
+    ).toHaveLength(0);
+    expect(
+      recommendGov24Services([multiChild], {
+        age: 35,
+        childCount: 2,
+        residenceSidoName: "서울",
+      }),
+    ).toHaveLength(1);
   });
 
   it("긴 정부 원문은 결과 카드용 길이로 줄여 반환한다", () => {

@@ -55,6 +55,11 @@ input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rg
 .check-label { display: flex; align-items: center; gap: 9px; padding: 10px 0; font-size: 14px; }
 .check-label input { width: 18px; height: 18px; accent-color: var(--green); }
 .conditional { display: grid; grid-template-columns: 1.3fr .7fr; gap: 10px; padding: 0 14px 14px; border-radius: 12px; background: #f5f8f5; }
+.conditional.stacked { grid-template-columns: 1fr; margin-top: 10px; }
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.option-list { margin-top: 14px; padding: 8px 14px; border-radius: 12px; background: #f5f8f5; }
+.option-list .check-label { margin-top: 0; border-bottom: 1px solid #e5ebe6; }
+.option-list .check-label:last-child { border-bottom: 0; }
 .median-income-card { margin-top: 16px; padding: 16px; border: 1px solid #cfe1d7; border-radius: 13px; background: #f1f8f4; }
 .median-income-card span { display: block; color: var(--green); font-size: 11px; font-weight: 800; }
 .median-income-card strong { display: block; margin-top: 5px; color: var(--green-dark); font-size: 18px; }
@@ -157,6 +162,7 @@ input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rg
   .result-head { flex-direction: column; }
   .status-badge { align-self: flex-start; }
   .catalog-candidate-foot { align-items: flex-start; flex-direction: column; }
+  .field-grid { grid-template-columns: 1fr; gap: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

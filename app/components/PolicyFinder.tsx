@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { CatalogSearch } from "./CatalogSearch";
+import { getRegion, koreanRegions } from "../lib/korean-regions";
 import {
   deriveProfile,
   recommendPolicies,
@@ -10,21 +11,46 @@ import {
   type PolicyRecommendation,
 } from "../../packages/policy-engine/src";
 
+type Occupation =
+  | "employee"
+  | "job_seeker"
+  | "self_employed"
+  | "student"
+  | "teacher"
+  | "private_school_employee"
+  | "public_officer"
+  | "military"
+  | "farmer"
+  | "livestock_worker"
+  | "fisher"
+  | "forestry_worker"
+  | "unemployed"
+  | "other";
+
 type FormState = {
   birthDate: string;
   gender: "" | "male" | "female";
   sidoCode: string;
+  sigunguName: string;
+  residenceStartMonth: string;
   maritalStatus: "single" | "married" | "planned";
   marriageDate: string;
   plannedMarriageDate: string;
   applicantIncome: string;
   spouseIncome: string;
   householdSize: string;
-  hasChild: boolean;
+  childCount: string;
   childBirthDate: string;
-  childBirthOrder: string;
-  childRegistered: boolean;
-  jobSeeking: boolean;
+  hasAdoptedChild: boolean;
+  pregnant: boolean;
+  occupation: "" | Occupation;
+  privateSchoolPensionMember: boolean;
+  hasDisability: boolean;
+  singleParentFamily: boolean;
+  multiculturalFamily: boolean;
+  northKoreanDefector: boolean;
+  veteran: boolean;
+  hasDisease: boolean;
   isHouseholdHead: "" | "yes" | "no";
   homeCount: string;
   netAssets: string;
@@ -34,17 +60,26 @@ const initialForm: FormState = {
   birthDate: "",
   gender: "",
   sidoCode: "11",
+  sigunguName: "종로구",
+  residenceStartMonth: "",
   maritalStatus: "single",
   marriageDate: "",
   plannedMarriageDate: "",
   applicantIncome: "",
   spouseIncome: "",
   householdSize: "",
-  hasChild: false,
+  childCount: "0",
   childBirthDate: "",
-  childBirthOrder: "1",
-  childRegistered: true,
-  jobSeeking: false,
+  hasAdoptedChild: false,
+  pregnant: false,
+  occupation: "",
+  privateSchoolPensionMember: false,
+  hasDisability: false,
+  singleParentFamily: false,
+  multiculturalFamily: false,
+  northKoreanDefector: false,
+  veteran: false,
+  hasDisease: false,
   isHouseholdHead: "",
   homeCount: "",
   netAssets: "",
@@ -56,24 +91,21 @@ const statusCopy = {
   unlikely: { label: "현재는 가능성 낮음", icon: "–" },
 } as const;
 
-const regions = [
-  ["11", "서울"],
-  ["26", "부산"],
-  ["27", "대구"],
-  ["28", "인천"],
-  ["29", "광주"],
-  ["30", "대전"],
-  ["31", "울산"],
-  ["36", "세종"],
-  ["41", "경기"],
-  ["42", "강원"],
-  ["43", "충북"],
-  ["44", "충남"],
-  ["45", "전북"],
-  ["46", "전남"],
-  ["47", "경북"],
-  ["48", "경남"],
-  ["50", "제주"],
+const occupationOptions: Array<[Occupation, string]> = [
+  ["employee", "회사원·근로자"],
+  ["job_seeker", "구직 중"],
+  ["self_employed", "자영업·소상공인"],
+  ["student", "대학생·대학원생"],
+  ["teacher", "교사·교직원"],
+  ["private_school_employee", "사립학교 교직원"],
+  ["public_officer", "공무원"],
+  ["military", "군인·군무원"],
+  ["farmer", "농업 종사자"],
+  ["livestock_worker", "축산업 종사자"],
+  ["fisher", "어업 종사자"],
+  ["forestry_worker", "임업 종사자"],
+  ["unemployed", "현재 무직"],
+  ["other", "기타"],
 ];
 
 type CatalogRecommendation = {
@@ -103,14 +135,26 @@ type CatalogMatchState =
       results: CatalogRecommendation[];
     };
 
+type UnifiedRecommendation =
+  | { kind: "reviewed"; key: string; score: number; value: PolicyRecommendation }
+  | { kind: "catalog"; key: string; score: number; value: CatalogRecommendation };
+
 function won(value: string): number | undefined {
   return value === "" ? undefined : Number(value) * 10_000;
 }
 
+function monthsSince(month: string): number | undefined {
+  const match = /^(\d{4})-(\d{2})$/.exec(month);
+  if (!match) return undefined;
+  const now = new Date();
+  return Math.max(0, now.getFullYear() * 12 + now.getMonth() - (Number(match[1]) * 12 + Number(match[2]) - 1));
+}
+
 function buildProfile(form: FormState): PolicyProfile {
+  const childCount = Number(form.childCount);
   return {
     birthDate: form.birthDate,
-    residence: { sidoCode: form.sidoCode, sigunguCode: "" },
+    residence: { sidoCode: form.sidoCode, sigunguCode: form.sigunguName },
     maritalStatus: form.maritalStatus,
     marriageDate:
       form.maritalStatus === "married" && form.marriageDate
@@ -130,20 +174,18 @@ function buildProfile(form: FormState): PolicyProfile {
     householdNetAssets: won(form.netAssets),
     householdMembers: [],
     children:
-      form.hasChild && form.childBirthDate
+      childCount > 0 && form.childBirthDate
         ? [
             {
               birthDate: form.childBirthDate,
-              relationshipType: "birth",
-              birthOrder: Number(form.childBirthOrder),
+              relationshipType: form.hasAdoptedChild ? "adoption" : "birth",
+              birthOrder: childCount,
               nationalityStatus: "korean",
-              residentRegistrationStatus: form.childRegistered
-                ? "registered"
-                : "not_registered",
+              residentRegistrationStatus: "registered",
             },
           ]
         : [],
-    jobSeeking: form.jobSeeking,
+    jobSeeking: form.occupation === "job_seeker",
     isHouseholdHead:
       form.isHouseholdHead === ""
         ? undefined
@@ -153,11 +195,51 @@ function buildProfile(form: FormState): PolicyProfile {
   };
 }
 
-function RecommendationCard({
-  recommendation,
-}: {
-  recommendation: PolicyRecommendation;
-}) {
+function normalizedPolicyName(name: string): string {
+  return name
+    .replace(/[\s()（）·ㆍ,]/g, "")
+    .replace(/지원사업|지원금|사업/g, "")
+    .toLowerCase();
+}
+
+function samePolicyName(left: string, right: string): boolean {
+  const leftKey = normalizedPolicyName(left);
+  const rightKey = normalizedPolicyName(right);
+  if (leftKey === rightKey) return true;
+  return Math.min(leftKey.length, rightKey.length) >= 5 &&
+    (leftKey.includes(rightKey) || rightKey.includes(leftKey));
+}
+
+function combineRecommendations(
+  reviewed: PolicyRecommendation[],
+  catalog: CatalogRecommendation[],
+): UnifiedRecommendation[] {
+  const uniqueCatalog = catalog.filter(
+    (candidate) =>
+      !reviewed.some((item) =>
+        samePolicyName(item.policy.officialName, candidate.name),
+      ),
+  );
+
+  return [
+    ...reviewed.map((value) => ({
+      kind: "reviewed" as const,
+      key: value.policy.versionId,
+      score:
+        (value.match.status === "eligible" ? 100 : 60) +
+        value.match.recommendationReasons.length * 5,
+      value,
+    })),
+    ...uniqueCatalog.map((value) => ({
+      kind: "catalog" as const,
+      key: value.id,
+      score: value.score,
+      value,
+    })),
+  ].sort((left, right) => right.score - left.score);
+}
+
+function RecommendationCard({ recommendation }: { recommendation: PolicyRecommendation }) {
   const { policy, match } = recommendation;
   const copy = statusCopy[match.status];
 
@@ -181,10 +263,7 @@ function RecommendationCard({
           <strong>추천한 이유</strong>
           <ul>
             {match.recommendationReasons.slice(0, 4).map((reason) => (
-              <li key={reason}>
-                <span aria-hidden="true">✓</span>
-                {reason}
-              </li>
+              <li key={reason}><span aria-hidden="true">✓</span>{reason}</li>
             ))}
           </ul>
         </div>
@@ -195,9 +274,7 @@ function RecommendationCard({
           <strong>확인하면 더 정확해져요</strong>
           <ul>
             {match.unknown.slice(0, 3).map((item) => (
-              <li key={`${item.field}-${item.question}`}>
-                {item.question ?? item.message}
-              </li>
+              <li key={`${item.field}-${item.question}`}>{item.question ?? item.message}</li>
             ))}
           </ul>
         </div>
@@ -207,38 +284,24 @@ function RecommendationCard({
         <span>지원 내용</span>
         <p>{policy.benefitSummary}</p>
       </div>
-      <a
-        className="official-link"
-        href={policy.application.officialUrl}
-        target="_blank"
-        rel="noreferrer"
-      >
+      <a className="official-link" href={policy.application.officialUrl} target="_blank" rel="noreferrer">
         공식 사이트에서 확인하기 <span aria-hidden="true">↗</span>
       </a>
     </article>
   );
 }
 
-function CatalogRecommendationCard({
-  recommendation,
-}: {
-  recommendation: CatalogRecommendation;
-}) {
-  const officialUrl =
-    recommendation.onlineApplicationUrl ?? recommendation.detailUrl;
+function CatalogRecommendationCard({ recommendation }: { recommendation: CatalogRecommendation }) {
+  const officialUrl = recommendation.onlineApplicationUrl ?? recommendation.detailUrl;
 
   return (
-    <article className="result-card catalog-candidate">
+    <article className="result-card eligible">
       <div className="result-head">
         <div>
-          <span className="policy-type">
-            {recommendation.serviceField ?? "정부24 정책"}
-          </span>
+          <span className="policy-type">{recommendation.serviceField ?? "정부 정책"}</span>
           <h3>{recommendation.name}</h3>
         </div>
-        <span className="status-badge">
-          <b aria-hidden="true">✓</b> 1차 조건 후보
-        </span>
+        <span className="status-badge"><b aria-hidden="true">✓</b> 추천 조건 일치</span>
       </div>
       <p className="policy-summary">{recommendation.summary}</p>
 
@@ -246,38 +309,29 @@ function CatalogRecommendationCard({
         <strong>추천한 이유</strong>
         <ul>
           {recommendation.reasons.slice(0, 4).map((reason) => (
-            <li key={reason}>
-              <span aria-hidden="true">✓</span>
-              {reason}
-            </li>
+            <li key={reason}><span aria-hidden="true">✓</span>{reason}</li>
           ))}
         </ul>
       </div>
 
-      <div className="check-box">
-        <strong>신청 전에 확인할 내용</strong>
-        <ul>
-          {recommendation.additionalChecks.slice(0, 3).map((check) => (
-            <li key={check}>{check}</li>
-          ))}
-        </ul>
-      </div>
+      {recommendation.additionalChecks.length > 0 && (
+        <div className="check-box">
+          <strong>신청 전에 확인할 내용</strong>
+          <ul>
+            {recommendation.additionalChecks.slice(0, 3).map((check) => (
+              <li key={check}>{check}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {recommendation.benefitText && (
-        <div className="benefit">
-          <span>지원 내용</span>
-          <p>{recommendation.benefitText}</p>
-        </div>
+        <div className="benefit"><span>지원 내용</span><p>{recommendation.benefitText}</p></div>
       )}
       <div className="catalog-candidate-foot">
         <span>{recommendation.providerName}</span>
         {officialUrl && (
-          <a
-            className="official-link"
-            href={officialUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
+          <a className="official-link" href={officialUrl} target="_blank" rel="noreferrer">
             공식 사이트에서 확인하기 <span aria-hidden="true">↗</span>
           </a>
         )}
@@ -290,10 +344,9 @@ export function PolicyFinder() {
   const [form, setForm] = useState(initialForm);
   const [step, setStep] = useState(1);
   const [results, setResults] = useState<PolicyRecommendation[] | null>(null);
-  const [catalogMatch, setCatalogMatch] = useState<CatalogMatchState>({
-    status: "idle",
-  });
+  const [catalogMatch, setCatalogMatch] = useState<CatalogMatchState>({ status: "idle" });
 
+  const currentRegion = getRegion(form.sidoCode);
   const incomeEstimate = useMemo(() => {
     if (!form.birthDate) return undefined;
     try {
@@ -303,33 +356,47 @@ export function PolicyFinder() {
     }
   }, [form]);
 
-  const update = <K extends keyof FormState>(
-    key: K,
-    value: FormState[K],
-  ) => setForm((current) => ({ ...current, [key]: value }));
+  const update = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+    setForm((current) => ({ ...current, [key]: value }));
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const profile = buildProfile(form);
     const derived = deriveProfile(profile);
+    const childCount = Number(form.childCount);
     setResults(recommendPolicies(profile));
     setCatalogMatch({ status: "loading" });
 
-    const residenceSidoName = regions.find(([code]) => code === form.sidoCode)?.[1];
     const requestBody = {
       age: derived.age,
       ...(form.gender ? { gender: form.gender } : {}),
       ...(derived.householdMedianIncomeRatio !== undefined
         ? { householdMedianIncomeRatio: derived.householdMedianIncomeRatio }
         : {}),
-      householdSize: derived.householdSize,
-      childCount: derived.childCount,
-      hasChildren: derived.childCount > 0,
-      jobSeeking: derived.jobSeeking,
+      householdSize: Number(form.householdSize),
+      childCount,
+      hasChildren: childCount > 0,
+      pregnant: form.pregnant,
+      hasAdoptedChild: form.hasAdoptedChild,
+      occupation: form.occupation,
+      jobSeeking: form.occupation === "job_seeker",
+      privateSchoolPensionMember:
+        form.occupation === "private_school_employee" &&
+        form.privateSchoolPensionMember,
+      hasDisability: form.hasDisability,
+      singleParentFamily: form.singleParentFamily,
+      multiculturalFamily: form.multiculturalFamily,
+      northKoreanDefector: form.northKoreanDefector,
+      veteran: form.veteran,
+      hasDisease: form.hasDisease,
       ...(derived.householdHomeCount !== undefined
         ? { householdHomeCount: derived.householdHomeCount }
         : {}),
-      ...(residenceSidoName ? { residenceSidoName } : {}),
+      residenceSidoName: currentRegion.name,
+      residenceSigunguName: form.sigunguName,
+      ...(monthsSince(form.residenceStartMonth) !== undefined
+        ? { residenceMonths: monthsSince(form.residenceStartMonth) }
+        : {}),
     };
 
     void fetch("/api/catalog/recommendations", {
@@ -339,11 +406,7 @@ export function PolicyFinder() {
     })
       .then(async (response) => {
         const payload = (await response.json()) as
-          | {
-              catalogCount: number;
-              candidateCount: number;
-              results: CatalogRecommendation[];
-            }
+          | { catalogCount: number; candidateCount: number; results: CatalogRecommendation[] }
           | { error?: string };
         if (!response.ok || !("results" in payload)) {
           throw new Error("error" in payload ? payload.error : undefined);
@@ -363,444 +426,224 @@ export function PolicyFinder() {
   };
 
   if (results) {
-    const eligible = results.filter(
-      (result) => result.match.status === "eligible",
-    ).length;
-    const review = results.filter(
-      (result) => result.match.status === "needs_review",
-    ).length;
+    const catalogResults = catalogMatch.status === "success" ? catalogMatch.results : [];
+    const unifiedRecommendations = combineRecommendations(results, catalogResults);
+    const resultCountReady = catalogMatch.status === "success" || catalogMatch.status === "error";
 
     return (
       <main>
         <header className="topbar">
-          <Link className="brand" href="/" aria-label="혜택나침반 홈">
-            <span className="brand-mark">ㅎ</span>
-            혜택나침반
-          </Link>
+          <Link className="brand" href="/" aria-label="혜택나침반 홈"><span className="brand-mark">ㅎ</span>혜택나침반</Link>
           <span className="top-note">정부 공식 출처 기반</span>
         </header>
         <section className="results-hero">
-          <button
-            className="back-button"
-            onClick={() => {
-              setResults(null);
-              setCatalogMatch({ status: "idle" });
-            }}
-          >
+          <button className="back-button" onClick={() => { setResults(null); setCatalogMatch({ status: "idle" }); }}>
             ← 입력 수정하기
           </button>
-          <p className="eyebrow">맞춤 탐색 완료</p>
+          <p className="eyebrow">{resultCountReady ? "맞춤 탐색 완료" : "전체 정책 비교 중"}</p>
           <h1>
-            놓치고 있던 혜택,
-            <br />
-            <em>{eligible + review}개</em>를 찾았어요
+            {resultCountReady ? (
+              <>놓치고 있던 혜택,<br /><em>{unifiedRecommendations.length}개</em>를 찾았어요</>
+            ) : (
+              <>내 조건에 맞는 혜택을<br /><em>찾고 있어요</em></>
+            )}
           </h1>
-          <p>
-            신청 가능성이 높은 정책 {eligible}개와 추가 확인이 필요한 정책{" "}
-            {review}개입니다.
-          </p>
+          <p>입력한 답변과 일치하는 추천 근거가 있는 정책만 보여드려요.</p>
         </section>
         <section className="result-list" aria-live="polite">
           {incomeEstimate?.householdMedianIncomeRatio !== undefined && (
             <aside className="median-income-card">
               <span>2026년 · {incomeEstimate.householdSize}인 가구 기준</span>
-              <strong>
-                예상 기준 중위소득{" "}
-                {incomeEstimate.householdMedianIncomeRatio.toFixed(1)}%
-              </strong>
-              <p>
-                입력한 가구원 수와 연소득으로 계산한 참고값이에요. 복지 심사는
-                소득·재산을 반영하므로 실제 소득인정액과 다를 수 있어요.
-              </p>
+              <strong>예상 기준 중위소득 {incomeEstimate.householdMedianIncomeRatio.toFixed(1)}%</strong>
+              <p>입력한 가구원 수와 연소득으로 계산한 참고값이에요. 복지 심사는 소득·재산을 반영하므로 실제 소득인정액과 다를 수 있어요.</p>
             </aside>
           )}
+
           <div className="result-section-heading">
-            <span>정밀 조건 정책</span>
-            <h2>직접 검토한 주요 정책</h2>
-            <p>세부 규칙까지 구조화한 10개 정책의 맞춤 결과예요.</p>
+            <span>한 번에 모아보기</span>
+            <h2>맞춤 추천 정책</h2>
+            <p>정책 출처와 관계없이 조건 일치도가 높은 순서로 보여드려요.</p>
           </div>
-          {results.map((result) => (
-            <RecommendationCard
-              key={result.policy.versionId}
-              recommendation={result}
-            />
-          ))}
-          <section className="catalog-match-section" aria-live="polite">
-            {catalogMatch.status === "loading" && (
-              <div className="catalog-match-message">
-                <strong>정부24 전체 정책을 조건별로 비교하고 있어요</strong>
-                <p>연령·소득·가구·생애상황 조건을 확인 중입니다.</p>
-              </div>
-            )}
-            {catalogMatch.status === "error" && (
-              <div className="catalog-match-message error">
-                <strong>전체 정책 조건 매칭을 불러오지 못했어요</strong>
-                <p>{catalogMatch.message}</p>
-              </div>
-            )}
-            {catalogMatch.status === "success" && (
-              <>
-                <div className="result-section-heading catalog-heading">
-                  <span>정부24 전체 DB 1차 매칭</span>
-                  <h2>
-                    {catalogMatch.catalogCount.toLocaleString("ko-KR")}개 전체 정책 중{" "}
-                    {catalogMatch.candidateCount.toLocaleString("ko-KR")}개가 기본 조건을
-                    통과했어요
-                  </h2>
-                  <p>
-                    조건 일치도가 높은 순서로 최대 50개를 보여드려요. 원문에만 있는
-                    세부 기준은 반드시 공식 사이트에서 확인해주세요.
-                  </p>
-                </div>
-                {catalogMatch.results.map((recommendation) => (
-                  <CatalogRecommendationCard
-                    key={recommendation.id}
-                    recommendation={recommendation}
-                  />
-                ))}
-              </>
-            )}
-          </section>
+
+          {catalogMatch.status === "loading" && (
+            <div className="catalog-match-message">
+              <strong>전국 정책을 답변과 비교하고 있어요</strong>
+              <p>시군구·자녀 수·입양·직업·가구 특수조건까지 확인 중입니다.</p>
+            </div>
+          )}
+          {catalogMatch.status === "error" && (
+            <div className="catalog-match-message error">
+              <strong>전체 정책 조건 매칭을 불러오지 못했어요</strong>
+              <p>{catalogMatch.message}</p>
+            </div>
+          )}
+
+          {unifiedRecommendations.map((item) =>
+            item.kind === "reviewed" ? (
+              <RecommendationCard key={item.key} recommendation={item.value} />
+            ) : (
+              <CatalogRecommendationCard key={item.key} recommendation={item.value} />
+            ),
+          )}
+
+          {catalogMatch.status === "success" && unifiedRecommendations.length === 0 && (
+            <div className="catalog-match-message">
+              <strong>현재 답변으로 확실한 추천 근거를 찾지 못했어요</strong>
+              <p>입력 정보를 수정하거나 아래 전체 혜택 검색을 이용해 주세요.</p>
+            </div>
+          )}
+
           <p className="disclaimer">
-            추천 결과는 입력 정보에 따른 사전 안내입니다. 실제 선정 여부,
-            금리와 한도는 정책 시행기관의 최신 공고와 심사 결과를 따릅니다.
-            기준 확인일 2026.07.30
-            <br />
-            원본 입력값은 브라우저에서 계산하고, 매칭용 파생값만 서버로 보내며
-            저장하지 않습니다.
+            추천 결과는 입력 정보에 따른 사전 안내입니다. 실제 선정 여부, 금리와 한도는 정책 시행기관의 최신 공고와 심사 결과를 따릅니다. 기준 확인일 2026.07.30
+            <br />원본 입력값은 브라우저에서 계산하고, 매칭용 파생값만 서버로 보내며 저장하지 않습니다.
           </p>
         </section>
       </main>
     );
   }
 
+  const childCount = Number(form.childCount);
+
   return (
     <main>
       <header className="topbar">
-        <Link className="brand" href="/" aria-label="혜택나침반 홈">
-          <span className="brand-mark">ㅎ</span>
-          혜택나침반
-        </Link>
+        <Link className="brand" href="/" aria-label="혜택나침반 홈"><span className="brand-mark">ㅎ</span>혜택나침반</Link>
         <span className="top-note">정부 공식 출처 기반</span>
       </header>
 
       <section className="hero">
         <div className="hero-copy">
           <p className="eyebrow">몰라서 놓치는 혜택이 없도록</p>
-          <h1>
-            내 상황에 맞는
-            <br />
-            정부 혜택을 <em>한 번에</em>
-          </h1>
-          <p className="hero-description">
-            복잡한 검색 없이, 몇 가지 정보만 알려주세요.
-            <br />
-            받을 가능성이 있는 지원금과 정책대출을 이유와 함께 찾아드려요.
-          </p>
-          <div className="trust-row">
-            <span>✓ AI 추측 없이 조건 매칭</span>
-            <span>✓ 원본 입력값은 브라우저에서 계산</span>
-          </div>
+          <h1>내 상황에 맞는<br />정부 혜택을 <em>한 번에</em></h1>
+          <p className="hero-description">복잡한 검색 없이, 몇 가지 정보만 알려주세요.<br />받을 가능성이 있는 지원금과 정책대출을 이유와 함께 찾아드려요.</p>
+          <div className="trust-row"><span>✓ AI 추측 없이 조건 매칭</span><span>✓ 원본 입력값은 브라우저에서 계산</span></div>
         </div>
 
         <form className="finder-card" onSubmit={submit}>
           <div className="progress-head">
-            <div>
-              <span>맞춤 혜택 찾기</span>
-              <strong>{step} / 3</strong>
-            </div>
-            <div className="progress-track">
-              <i style={{ width: `${(step / 3) * 100}%` }} />
-            </div>
+            <div><span>맞춤 혜택 찾기</span><strong>{step} / 4</strong></div>
+            <div className="progress-track"><i style={{ width: `${(step / 4) * 100}%` }} /></div>
           </div>
 
           {step === 1 && (
             <fieldset>
-              <legend>
-                먼저, 기본 정보를
-                <br />
-                알려주세요
-              </legend>
-              <label>
-                생년월일
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="\d{4}-\d{2}-\d{2}"
-                  placeholder="예: 1992-05-10"
-                  required
-                  value={form.birthDate}
-                  onChange={(event) => update("birthDate", event.target.value)}
-                />
+              <legend>본인과 거주 지역을<br />알려주세요</legend>
+              <label>생년월일
+                <input type="text" inputMode="numeric" pattern="\d{4}-\d{2}-\d{2}" placeholder="예: 1992-05-10" required value={form.birthDate} onChange={(event) => update("birthDate", event.target.value)} />
               </label>
-              <label>
-                성별 <small>선택 · 일부 정책 조건 확인용</small>
-                <select
-                  value={form.gender}
-                  onChange={(event) =>
-                    update("gender", event.target.value as FormState["gender"])
-                  }
-                >
-                  <option value="">선택하지 않음</option>
-                  <option value="female">여성</option>
-                  <option value="male">남성</option>
+              <label>성별 <small>선택 · 일부 정책 조건 확인용</small>
+                <select value={form.gender} onChange={(event) => update("gender", event.target.value as FormState["gender"])}>
+                  <option value="">선택하지 않음</option><option value="female">여성</option><option value="male">남성</option>
                 </select>
               </label>
-              <label>
-                현재 거주 지역
-                <select
-                  value={form.sidoCode}
-                  onChange={(event) => update("sidoCode", event.target.value)}
-                >
-                  {regions.map(([code, name]) => (
-                    <option key={code} value={code}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
+              <div className="field-grid">
+                <label>시·도
+                  <select value={form.sidoCode} onChange={(event) => {
+                    const region = getRegion(event.target.value);
+                    setForm((current) => ({ ...current, sidoCode: region.code, sigunguName: region.sigungu[0] }));
+                  }}>
+                    {koreanRegions.map((region) => <option key={region.code} value={region.code}>{region.name}</option>)}
+                  </select>
+                </label>
+                <label>시·군·구
+                  <select required value={form.sigunguName} onChange={(event) => update("sigunguName", event.target.value)}>
+                    {currentRegion.sigungu.map((name) => <option key={name} value={name}>{name}</option>)}
+                  </select>
+                </label>
+              </div>
+              <label>현재 지역 전입 시점 <small>선택 · 거주기간 조건 확인용</small>
+                <input type="month" value={form.residenceStartMonth} onChange={(event) => update("residenceStartMonth", event.target.value)} />
               </label>
-              <label>
-                혼인 상태
-                <select
-                  value={form.maritalStatus}
-                  onChange={(event) =>
-                    update(
-                      "maritalStatus",
-                      event.target.value as FormState["maritalStatus"],
-                    )
-                  }
-                >
-                  <option value="single">미혼</option>
-                  <option value="married">기혼</option>
-                  <option value="planned">결혼 예정</option>
+              <label>혼인 상태
+                <select value={form.maritalStatus} onChange={(event) => update("maritalStatus", event.target.value as FormState["maritalStatus"])}>
+                  <option value="single">미혼·이혼·사별</option><option value="married">기혼</option><option value="planned">결혼 예정</option>
                 </select>
               </label>
               {form.maritalStatus === "married" && (
-                <label>
-                  혼인신고일
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="\d{4}-\d{2}-\d{2}"
-                    placeholder="예: 2024-04-20"
-                    required
-                    value={form.marriageDate}
-                    onChange={(event) =>
-                      update("marriageDate", event.target.value)
-                    }
-                  />
-                </label>
+                <label>혼인신고일<input type="text" inputMode="numeric" pattern="\d{4}-\d{2}-\d{2}" placeholder="예: 2024-04-20" required value={form.marriageDate} onChange={(event) => update("marriageDate", event.target.value)} /></label>
               )}
               {form.maritalStatus === "planned" && (
-                <label>
-                  결혼 예정일
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="\d{4}-\d{2}-\d{2}"
-                    placeholder="예: 2026-09-30"
-                    required
-                    value={form.plannedMarriageDate}
-                    onChange={(event) =>
-                      update("plannedMarriageDate", event.target.value)
-                    }
-                  />
-                </label>
+                <label>결혼 예정일<input type="text" inputMode="numeric" pattern="\d{4}-\d{2}-\d{2}" placeholder="예: 2026-09-30" required value={form.plannedMarriageDate} onChange={(event) => update("plannedMarriageDate", event.target.value)} /></label>
               )}
-              <button
-                type="button"
-                className="primary-button"
-                onClick={(event) => {
-                  if (event.currentTarget.form?.reportValidity()) setStep(2);
-                }}
-              >
-                다음
-              </button>
+              <button type="button" className="primary-button" onClick={(event) => { if (event.currentTarget.form?.reportValidity()) setStep(2); }}>다음</button>
             </fieldset>
           )}
 
           {step === 2 && (
             <fieldset>
-              <legend>
-                가족과 소득 정보를
-                <br />
-                알려주세요
-              </legend>
-              <label>
-                본인 연소득 <small>만원 단위</small>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="예: 4000"
-                  value={form.applicantIncome}
-                  onChange={(event) =>
-                    update("applicantIncome", event.target.value)
-                  }
-                />
-              </label>
+              <legend>가족과 소득 정보를<br />알려주세요</legend>
+              <label>본인 연소득 <small>만원 단위</small><input type="number" min="0" placeholder="예: 4000" value={form.applicantIncome} onChange={(event) => update("applicantIncome", event.target.value)} /></label>
               {form.maritalStatus !== "single" && (
-                <label>
-                  배우자 연소득 <small>만원 단위</small>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="예: 3000"
-                    value={form.spouseIncome}
-                    onChange={(event) =>
-                      update("spouseIncome", event.target.value)
-                    }
-                  />
-                </label>
+                <label>배우자 연소득 <small>만원 단위</small><input type="number" min="0" placeholder="예: 3000" value={form.spouseIncome} onChange={(event) => update("spouseIncome", event.target.value)} /></label>
               )}
-              <label>
-                가구원 수 <small>본인 포함</small>
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  placeholder="예: 3"
-                  required
-                  value={form.householdSize}
-                  onChange={(event) =>
-                    update("householdSize", event.target.value)
-                  }
-                />
-              </label>
-              <p className="field-help">
-                본인을 포함해 현재 함께 생활하는 인원을 입력해 주세요.
-                한부모·조부모 동거 등 실제 가구 구성을 그대로 반영해요.
-              </p>
-              <label className="check-label">
-                <input
-                  type="checkbox"
-                  checked={form.hasChild}
-                  onChange={(event) => update("hasChild", event.target.checked)}
-                />
-                자녀가 있어요
-              </label>
-              {form.hasChild && (
-                <div className="conditional">
-                  <label>
-                    가장 어린 자녀 생년월일
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="\d{4}-\d{2}-\d{2}"
-                      placeholder="예: 2025-12-15"
-                      required
-                      value={form.childBirthDate}
-                      onChange={(event) =>
-                        update("childBirthDate", event.target.value)
-                      }
-                    />
-                  </label>
-                  <label>
-                    출생 순위
-                    <select
-                      value={form.childBirthOrder}
-                      onChange={(event) =>
-                        update("childBirthOrder", event.target.value)
-                      }
-                    >
-                      <option value="1">첫째</option>
-                      <option value="2">둘째</option>
-                      <option value="3">셋째 이상</option>
-                    </select>
-                  </label>
+              <label>가구원 수 <small>본인 포함</small><input type="number" min="1" step="1" placeholder="예: 3" required value={form.householdSize} onChange={(event) => update("householdSize", event.target.value)} /></label>
+              <p className="field-help">본인과 실제 가구원을 그대로 입력해 주세요. 배우자·자녀 수로 가구원 수를 추론하지 않아요.</p>
+              <label>총 자녀 수<input type="number" min="0" max="20" step="1" required value={form.childCount} onChange={(event) => update("childCount", event.target.value)} /></label>
+              {childCount > 0 && (
+                <div className="conditional stacked">
+                  <label>가장 어린 자녀 생년월일<input type="text" inputMode="numeric" pattern="\d{4}-\d{2}-\d{2}" placeholder="예: 2025-12-15" required value={form.childBirthDate} onChange={(event) => update("childBirthDate", event.target.value)} /></label>
+                  <label className="check-label"><input type="checkbox" checked={form.hasAdoptedChild} onChange={(event) => update("hasAdoptedChild", event.target.checked)} />입양한 자녀가 있어요</label>
                 </div>
               )}
-              <label className="check-label">
-                <input
-                  type="checkbox"
-                  checked={form.jobSeeking}
-                  onChange={(event) => update("jobSeeking", event.target.checked)}
-                />
-                현재 구직 중이에요
-              </label>
+              <label className="check-label"><input type="checkbox" checked={form.pregnant} onChange={(event) => update("pregnant", event.target.checked)} />본인 또는 배우자가 현재 임신 중이에요</label>
               <div className="button-row">
-                <button type="button" className="text-button" onClick={() => setStep(1)}>
-                  이전
-                </button>
-                <button
-                  type="button"
-                  className="primary-button"
-                  onClick={(event) => {
-                    if (event.currentTarget.form?.reportValidity()) setStep(3);
-                  }}
-                >
-                  다음
-                </button>
+                <button type="button" className="text-button" onClick={() => setStep(1)}>이전</button>
+                <button type="button" className="primary-button" onClick={(event) => { if (event.currentTarget.form?.reportValidity()) setStep(3); }}>다음</button>
               </div>
             </fieldset>
           )}
 
           {step === 3 && (
             <fieldset>
-              <legend>
-                주거 혜택도
-                <br />
-                함께 찾아볼까요?
-              </legend>
-              <p className="field-help">
-                모르는 항목은 비워두세요. 탈락 처리하지 않고 결과에서 필요한
-                확인사항으로 알려드려요.
-              </p>
-              <label>
-                세대주 여부
-                <select
-                  value={form.isHouseholdHead}
-                  onChange={(event) =>
-                    update(
-                      "isHouseholdHead",
-                      event.target.value as FormState["isHouseholdHead"],
-                    )
-                  }
-                >
-                  <option value="">잘 모르겠어요</option>
-                  <option value="yes">예</option>
-                  <option value="no">아니요</option>
+              <legend>현재 직업과 소속을<br />알려주세요</legend>
+              <p className="field-help">직업을 따로 다시 묻지 않도록 가장 가까운 항목 하나를 선택해 주세요.</p>
+              <label>현재 직업·소속
+                <select required value={form.occupation} onChange={(event) => {
+                  const occupation = event.target.value as FormState["occupation"];
+                  setForm((current) => ({ ...current, occupation, privateSchoolPensionMember: occupation === "private_school_employee" ? current.privateSchoolPensionMember : false }));
+                }}>
+                  <option value="">선택해 주세요</option>
+                  {occupationOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
               </label>
-              <label>
-                가구 전체 보유 주택 수
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="모르면 비워두세요"
-                  value={form.homeCount}
-                  onChange={(event) => update("homeCount", event.target.value)}
-                />
-              </label>
-              <label>
-                가구 순자산 <small>만원 단위</small>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="자산에서 부채를 뺀 금액"
-                  value={form.netAssets}
-                  onChange={(event) => update("netAssets", event.target.value)}
-                />
-              </label>
+              {form.occupation === "private_school_employee" && (
+                <label className="check-label"><input type="checkbox" checked={form.privateSchoolPensionMember} onChange={(event) => update("privateSchoolPensionMember", event.target.checked)} />사학연금에 가입했어요</label>
+              )}
               <div className="button-row">
-                <button type="button" className="text-button" onClick={() => setStep(2)}>
-                  이전
-                </button>
-                <button type="submit" className="primary-button">
-                  내 혜택 결과 보기
-                </button>
+                <button type="button" className="text-button" onClick={() => setStep(2)}>이전</button>
+                <button type="button" className="primary-button" onClick={(event) => { if (event.currentTarget.form?.reportValidity()) setStep(4); }}>다음</button>
               </div>
-              <p className="privacy-note">
-                🔒 원본 입력값은 브라우저에서 계산하고, 매칭용 파생값만 서버로
-                보내며 저장하지 않습니다.
-              </p>
+            </fieldset>
+          )}
+
+          {step === 4 && (
+            <fieldset>
+              <legend>해당되는 상황을<br />모두 선택해 주세요</legend>
+              <p className="field-help">선택하지 않은 항목은 해당 없음으로 반영해 전용 정책을 결과에서 제외해요.</p>
+              <div className="option-list">
+                <label className="check-label"><input type="checkbox" checked={form.hasDisability} onChange={(event) => update("hasDisability", event.target.checked)} />본인 또는 가구원이 장애 등록되어 있어요</label>
+                <label className="check-label"><input type="checkbox" checked={form.singleParentFamily} onChange={(event) => update("singleParentFamily", event.target.checked)} />한부모·조손가정이에요</label>
+                <label className="check-label"><input type="checkbox" checked={form.multiculturalFamily} onChange={(event) => update("multiculturalFamily", event.target.checked)} />다문화가족이에요</label>
+                <label className="check-label"><input type="checkbox" checked={form.northKoreanDefector} onChange={(event) => update("northKoreanDefector", event.target.checked)} />북한이탈주민이에요</label>
+                <label className="check-label"><input type="checkbox" checked={form.veteran} onChange={(event) => update("veteran", event.target.checked)} />국가보훈대상자예요</label>
+                <label className="check-label"><input type="checkbox" checked={form.hasDisease} onChange={(event) => update("hasDisease", event.target.checked)} />질병·질환 관련 지원이 필요해요</label>
+              </div>
+              <label>세대주 여부
+                <select value={form.isHouseholdHead} onChange={(event) => update("isHouseholdHead", event.target.value as FormState["isHouseholdHead"])}>
+                  <option value="">잘 모르겠어요</option><option value="yes">예</option><option value="no">아니요</option>
+                </select>
+              </label>
+              <label>가구 전체 보유 주택 수<input type="number" min="0" placeholder="모르면 비워두세요" value={form.homeCount} onChange={(event) => update("homeCount", event.target.value)} /></label>
+              <label>가구 순자산 <small>만원 단위</small><input type="number" min="0" placeholder="자산에서 부채를 뺀 금액" value={form.netAssets} onChange={(event) => update("netAssets", event.target.value)} /></label>
+              <div className="button-row"><button type="button" className="text-button" onClick={() => setStep(3)}>이전</button><button type="submit" className="primary-button">내 혜택 결과 보기</button></div>
+              <p className="privacy-note">🔒 원본 입력값은 브라우저에서 계산하고, 매칭용 파생값만 서버로 보내며 저장하지 않습니다.</p>
             </fieldset>
           )}
         </form>
       </section>
 
       <section className="how-it-works">
-        <p className="eyebrow">어떻게 찾아주나요?</p>
-        <h2>추측하지 않고, 조건을 하나씩 비교해요</h2>
+        <p className="eyebrow">어떻게 찾아주나요?</p><h2>추측하지 않고, 조건을 하나씩 비교해요</h2>
         <div className="steps">
           <div><b>01</b><strong>한 번 입력</strong><span>겹치는 질문 없이 기본 상황을 받아요</span></div>
           <div><b>02</b><strong>정책 조건 비교</strong><span>공식 기준과 입력값을 직접 대조해요</span></div>

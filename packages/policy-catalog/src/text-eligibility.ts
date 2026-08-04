@@ -4,6 +4,7 @@ export type Gov24TextEligibilityConstraints = {
   minChildCount?: number;
   minResidenceMonths?: number;
   requiresAdoptedChild: boolean;
+  requiresEducationEmployee: boolean;
   requiresPrivateSchoolEmployee: boolean;
   requiresPrivateSchoolPension: boolean;
 };
@@ -81,6 +82,14 @@ export function parseGov24TextEligibility(
     /사립학교\s*교직원/.test(eligibilityText) ||
     (/사립학교교직원연금공단/.test(source.providerName) &&
       /교직원/.test(eligibilityText));
+  const educationEmployeeText = [source.targetText, source.criteriaText]
+    .filter(Boolean)
+    .join("\n");
+  const educationEmployee =
+    /교직원|교원|교사/.test(source.name) ||
+    /(?:대상|신청자|재직).{0,30}(?:교직원|교원|교사)|(?:교직원|교원|교사).{0,30}(?:재직|대상|신청)/.test(
+      educationEmployeeText,
+    );
 
   return {
     ...(childThreshold(eligibilityText) !== undefined
@@ -90,6 +99,7 @@ export function parseGov24TextEligibility(
       ? { minResidenceMonths: residenceThreshold(eligibilityText) }
       : {}),
     requiresAdoptedChild: adoptionOnlyName || adoptionOnlyTarget,
+    requiresEducationEmployee: educationEmployee,
     requiresPrivateSchoolEmployee: privateSchoolEmployee,
     requiresPrivateSchoolPension:
       /사학연금\s*가입자/.test(eligibilityText) ||
@@ -138,6 +148,23 @@ export function matchGov24TextEligibility(
       reasons.push("입양한 자녀가 있어 입양가정 대상 조건과 일치합니다.");
     } else {
       additionalChecks.push("입양한 자녀가 있는지 확인해주세요.");
+    }
+  }
+
+  if (constraints.requiresEducationEmployee) {
+    if (
+      input.occupation !== undefined &&
+      !["teacher", "private_school_employee"].includes(input.occupation)
+    ) {
+      return { status: "unlikely", reasons: [], additionalChecks: [] };
+    }
+    if (
+      input.occupation === "teacher" ||
+      input.occupation === "private_school_employee"
+    ) {
+      reasons.push("교사·교직원 대상 조건과 일치합니다.");
+    } else {
+      additionalChecks.push("교사·교직원인지 확인해주세요.");
     }
   }
 

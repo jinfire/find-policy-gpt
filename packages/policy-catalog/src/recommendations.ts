@@ -228,6 +228,7 @@ function matchesResidence(
   if (service.providerType === "시군구") {
     return Boolean(
       input.residenceSigunguName &&
+        service.providerName.includes(input.residenceSidoName) &&
         service.providerName.includes(input.residenceSigunguName),
     );
   }
@@ -241,6 +242,15 @@ function compactText(value: string, maxLength: number): string {
   return compacted.length > maxLength
     ? `${compacted.slice(0, maxLength)}…`
     : compacted;
+}
+
+function isBroadDemographicReason(reason: string): boolean {
+  return (
+    reason.startsWith("대상 연령") ||
+    reason.startsWith("예상 기준 중위소득") ||
+    reason.startsWith("남성 대상") ||
+    reason.startsWith("여성 대상")
+  );
 }
 
 export function recommendGov24Services(
@@ -263,6 +273,9 @@ export function recommendGov24Services(
 
       const reasons = [...textMatch.reasons, ...match.reasons];
       if (reasons.length === 0) return [];
+      if (reasons.length === 1 && isBroadDemographicReason(reasons[0])) {
+        return [];
+      }
 
       const additionalChecks = [
         ...textMatch.additionalChecks,
