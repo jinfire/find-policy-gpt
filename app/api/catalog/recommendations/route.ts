@@ -25,6 +25,7 @@ export async function POST(request: Request) {
         name: sourceCatalogServices.name,
         summary: sourceCatalogServices.summary,
         providerName: sourceCatalogServices.providerName,
+        providerType: sourceCatalogServices.providerType,
         audienceType: sourceCatalogServices.audienceType,
         serviceField: sourceCatalogServices.serviceField,
         supportType: sourceCatalogServices.supportType,

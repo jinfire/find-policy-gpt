@@ -1,5 +1,21 @@
 export type Gov24Gender = "male" | "female";
 
+export type Gov24Occupation =
+  | "employee"
+  | "job_seeker"
+  | "self_employed"
+  | "student"
+  | "teacher"
+  | "private_school_employee"
+  | "public_officer"
+  | "military"
+  | "farmer"
+  | "livestock_worker"
+  | "fisher"
+  | "forestry_worker"
+  | "unemployed"
+  | "other";
+
 export type Gov24MedianIncomeBand =
   | "0_50"
   | "51_75"
@@ -29,6 +45,16 @@ export type Gov24MatchInput = {
   hasChildren?: boolean;
   jobSeeking?: boolean;
   householdHomeCount?: number;
+  pregnant?: boolean;
+  hasAdoptedChild?: boolean;
+  occupation?: Gov24Occupation;
+  privateSchoolPensionMember?: boolean;
+  hasDisability?: boolean;
+  singleParentFamily?: boolean;
+  multiculturalFamily?: boolean;
+  northKoreanDefector?: boolean;
+  veteran?: boolean;
+  hasDisease?: boolean;
 };
 
 export type Gov24EligibilityMatch = {
@@ -184,8 +210,32 @@ function incomeBandForRatio(ratio: number): Gov24MedianIncomeBand | undefined {
 
 type KnownConditionResult = { matches?: boolean; reason?: string };
 
+function booleanCondition(
+  value: boolean | undefined,
+  reason: string,
+): KnownConditionResult {
+  return value === undefined
+    ? {}
+    : { matches: value, reason: value ? reason : undefined };
+}
+
+function occupationCondition(
+  occupation: Gov24Occupation | undefined,
+  allowed: Gov24Occupation[],
+  label: string,
+): KnownConditionResult {
+  if (occupation === undefined) return {};
+  const matches = allowed.includes(occupation);
+  return {
+    matches,
+    reason: matches ? `${label} 대상 조건과 일치합니다.` : undefined,
+  };
+}
+
 function knownConditionResult(code: string, input: Gov24MatchInput): KnownConditionResult {
   switch (code) {
+    case "JA0302":
+      return booleanCondition(input.pregnant, "현재 임신 중이라는 조건과 일치합니다.");
     case "JA0303":
       return input.hasChildren === undefined
         ? {}
@@ -196,14 +246,44 @@ function knownConditionResult(code: string, input: Gov24MatchInput): KnownCondit
               : undefined,
           };
     case "JA0327":
-      return input.jobSeeking === undefined
-        ? {}
-        : {
-            matches: input.jobSeeking,
-            reason: input.jobSeeking
-              ? "현재 구직 중이라는 조건과 일치합니다."
-              : undefined,
-          };
+      return booleanCondition(
+        input.jobSeeking ??
+          (input.occupation === undefined
+            ? undefined
+            : input.occupation === "job_seeker"),
+        "현재 구직 중이라는 조건과 일치합니다.",
+      );
+    case "JA0313":
+      return occupationCondition(input.occupation, ["farmer", "livestock_worker"], "농업인");
+    case "JA0314":
+      return occupationCondition(input.occupation, ["fisher"], "어업인");
+    case "JA0315":
+      return occupationCondition(input.occupation, ["livestock_worker"], "축산업인");
+    case "JA0316":
+      return occupationCondition(input.occupation, ["forestry_worker"], "임업인");
+    case "JA0320":
+      return occupationCondition(input.occupation, ["student"], "대학생/대학원생");
+    case "JA0326":
+      return occupationCondition(
+        input.occupation,
+        ["employee", "teacher", "private_school_employee", "public_officer", "military"],
+        "근로자",
+      );
+    case "JA0328":
+      return booleanCondition(input.hasDisability, "장애인 대상 조건과 일치합니다.");
+    case "JA0329":
+      return booleanCondition(input.veteran, "국가보훈대상자 조건과 일치합니다.");
+    case "JA0330":
+      return booleanCondition(input.hasDisease, "질병/질환자 대상 조건과 일치합니다.");
+    case "JA0401":
+      return booleanCondition(input.multiculturalFamily, "다문화가족 대상 조건과 일치합니다.");
+    case "JA0402":
+      return booleanCondition(input.northKoreanDefector, "북한이탈주민 대상 조건과 일치합니다.");
+    case "JA0403":
+      return booleanCondition(
+        input.singleParentFamily,
+        "한부모가정/조손가정 대상 조건과 일치합니다.",
+      );
     case "JA0404":
       return input.householdSize === undefined
         ? {}
@@ -215,15 +295,7 @@ function knownConditionResult(code: string, input: Gov24MatchInput): KnownCondit
                 : undefined,
           };
     case "JA0411":
-      return input.childCount === undefined
-        ? {}
-        : {
-            matches: input.childCount >= 2,
-            reason:
-              input.childCount >= 2
-                ? "자녀가 2명 이상이어서 다자녀가구 기본 조건과 일치합니다."
-                : undefined,
-          };
+      return {};
     case "JA0412":
       return input.householdHomeCount === undefined
         ? {}

@@ -131,4 +131,29 @@ describe("정부24 구조화 지원조건", () => {
     expect(match.status).toBe("candidate");
     expect(match.additionalChecks).toEqual([]);
   });
+
+  it("명시적으로 답한 임신·장애·한부모·직업 조건으로 후보를 거른다", () => {
+    expect(
+      matchGov24Eligibility(parseGov24Eligibility({ JA0302: "Y" }), {
+        age: 30,
+        pregnant: false,
+      }).status,
+    ).toBe("unlikely");
+
+    const match = matchGov24Eligibility(
+      parseGov24Eligibility({ JA0328: "Y", JA0403: "Y" }),
+      {
+        age: 30,
+        hasDisability: true,
+        singleParentFamily: true,
+      },
+    );
+    expect(match.status).toBe("candidate");
+    expect(match.reasons).toEqual(
+      expect.arrayContaining([
+        "장애인 대상 조건과 일치합니다.",
+        "한부모가정/조손가정 대상 조건과 일치합니다.",
+      ]),
+    );
+  });
 });

@@ -3,7 +3,12 @@ import {
   type Gov24EligibilityProfile,
   type Gov24Gender,
   type Gov24MatchInput,
+  type Gov24Occupation,
 } from "./eligibility";
+import {
+  matchGov24TextEligibility,
+  parseGov24TextEligibility,
+} from "./text-eligibility";
 
 const SIDO_NAMES = [
   "서울",
@@ -27,6 +32,8 @@ const SIDO_NAMES = [
 
 export type Gov24RecommendationInput = Gov24MatchInput & {
   residenceSidoName?: (typeof SIDO_NAMES)[number];
+  residenceSigunguName?: string;
+  residenceMonths?: number;
 };
 
 export type Gov24RecommendationService = {
@@ -34,6 +41,7 @@ export type Gov24RecommendationService = {
   name: string;
   summary: string;
   providerName: string;
+  providerType: string | null;
   audienceType: string | null;
   serviceField: string | null;
   supportType: string | null;
@@ -49,7 +57,11 @@ export type Gov24RecommendationService = {
 
 export type Gov24ServiceRecommendation = Omit<
   Gov24RecommendationService,
-  "eligibilityProfile" | "criteriaText" | "targetText" | "viewCount"
+  | "eligibilityProfile"
+  | "criteriaText"
+  | "targetText"
+  | "viewCount"
+  | "providerType"
 > & {
   reasons: string[];
   additionalChecks: string[];
@@ -104,57 +116,101 @@ export function parseGov24RecommendationInput(value: unknown): Gov24Recommendati
     throw new Error("거주 지역 값을 확인해주세요.");
   }
 
+  const residenceSigunguName = input.residenceSigunguName;
+  if (
+    residenceSigunguName !== undefined &&
+    (typeof residenceSigunguName !== "string" ||
+      !/^[가-힣·\s]+(?:시|군|구)$/.test(residenceSigunguName.trim()) ||
+      residenceSigunguName.trim().length > 30)
+  ) {
+    throw new Error("시군구 값을 확인해주세요.");
+  }
+
+  const occupations: Gov24Occupation[] = [
+    "employee",
+    "job_seeker",
+    "self_employed",
+    "student",
+    "teacher",
+    "private_school_employee",
+    "public_officer",
+    "military",
+    "farmer",
+    "livestock_worker",
+    "fisher",
+    "forestry_worker",
+    "unemployed",
+    "other",
+  ];
+  const occupation = input.occupation;
+  if (
+    occupation !== undefined &&
+    !occupations.includes(occupation as Gov24Occupation)
+  ) {
+    throw new Error("직업 상태 값을 확인해주세요.");
+  }
+
+  const householdMedianIncomeRatio = optionalNumber(
+    input.householdMedianIncomeRatio,
+    "기준 중위소득 비율",
+    { max: 10_000 },
+  );
+  const householdSize = optionalNumber(input.householdSize, "가구원 수", {
+    integer: true,
+    max: 100,
+  });
+  const childCount = optionalNumber(input.childCount, "자녀 수", {
+    integer: true,
+    max: 100,
+  });
+  const householdHomeCount = optionalNumber(
+    input.householdHomeCount,
+    "보유 주택 수",
+    { integer: true, max: 100 },
+  );
+  const residenceMonths = optionalNumber(input.residenceMonths, "거주기간", {
+    integer: true,
+    max: 1_200,
+  });
+  const booleanFields = {
+    hasChildren: optionalBoolean(input.hasChildren, "자녀 여부"),
+    jobSeeking: optionalBoolean(input.jobSeeking, "구직 여부"),
+    pregnant: optionalBoolean(input.pregnant, "임신 여부"),
+    hasAdoptedChild: optionalBoolean(input.hasAdoptedChild, "입양 자녀 여부"),
+    privateSchoolPensionMember: optionalBoolean(
+      input.privateSchoolPensionMember,
+      "사학연금 가입 여부",
+    ),
+    hasDisability: optionalBoolean(input.hasDisability, "장애 여부"),
+    singleParentFamily: optionalBoolean(input.singleParentFamily, "한부모 여부"),
+    multiculturalFamily: optionalBoolean(input.multiculturalFamily, "다문화가족 여부"),
+    northKoreanDefector: optionalBoolean(
+      input.northKoreanDefector,
+      "북한이탈주민 여부",
+    ),
+    veteran: optionalBoolean(input.veteran, "국가보훈대상 여부"),
+    hasDisease: optionalBoolean(input.hasDisease, "질병·질환 여부"),
+  };
+
   return {
     age: requiredAge(input.age),
     ...(gender ? { gender: gender as Gov24Gender } : {}),
-    ...(optionalNumber(input.householdMedianIncomeRatio, "기준 중위소득 비율", {
-      max: 10_000,
-    }) !== undefined
-      ? {
-          householdMedianIncomeRatio: optionalNumber(
-            input.householdMedianIncomeRatio,
-            "기준 중위소득 비율",
-            { max: 10_000 },
-          ),
-        }
+    ...(householdMedianIncomeRatio !== undefined
+      ? { householdMedianIncomeRatio }
       : {}),
-    ...(optionalNumber(input.householdSize, "가구원 수", { integer: true, max: 100 }) !==
-    undefined
-      ? {
-          householdSize: optionalNumber(input.householdSize, "가구원 수", {
-            integer: true,
-            max: 100,
-          }),
-        }
-      : {}),
-    ...(optionalNumber(input.childCount, "자녀 수", { integer: true, max: 100 }) !==
-    undefined
-      ? {
-          childCount: optionalNumber(input.childCount, "자녀 수", {
-            integer: true,
-            max: 100,
-          }),
-        }
-      : {}),
-    ...(optionalBoolean(input.hasChildren, "자녀 여부") !== undefined
-      ? { hasChildren: optionalBoolean(input.hasChildren, "자녀 여부") }
-      : {}),
-    ...(optionalBoolean(input.jobSeeking, "구직 여부") !== undefined
-      ? { jobSeeking: optionalBoolean(input.jobSeeking, "구직 여부") }
-      : {}),
-    ...(optionalNumber(input.householdHomeCount, "보유 주택 수", {
-      integer: true,
-      max: 100,
-    }) !== undefined
-      ? {
-          householdHomeCount: optionalNumber(input.householdHomeCount, "보유 주택 수", {
-            integer: true,
-            max: 100,
-          }),
-        }
-      : {}),
+    ...(householdSize !== undefined ? { householdSize } : {}),
+    ...(childCount !== undefined ? { childCount } : {}),
+    ...(householdHomeCount !== undefined ? { householdHomeCount } : {}),
+    ...(residenceMonths !== undefined ? { residenceMonths } : {}),
+    ...Object.fromEntries(
+      Object.entries(booleanFields).filter(([, fieldValue]) => fieldValue !== undefined),
+    ),
+    ...(occupation ? { occupation: occupation as Gov24Occupation } : {}),
     ...(residenceSidoName
       ? { residenceSidoName: residenceSidoName as Gov24RecommendationInput["residenceSidoName"] }
+      : {}),
+    ...(typeof residenceSigunguName === "string"
+      ? { residenceSigunguName: residenceSigunguName.trim() }
       : {}),
   };
 }
@@ -165,13 +221,19 @@ function isPersonalAudience(audienceType: string | null): boolean {
 
 function matchesResidence(
   service: Gov24RecommendationService,
-  residenceSidoName: Gov24RecommendationInput["residenceSidoName"],
+  input: Gov24RecommendationInput,
 ): boolean {
   if (service.scope === "national") return true;
-  if (!residenceSidoName) return false;
+  if (!input.residenceSidoName) return false;
+  if (service.providerType === "시군구") {
+    return Boolean(
+      input.residenceSigunguName &&
+        service.providerName.includes(input.residenceSigunguName),
+    );
+  }
   return [service.providerName, service.targetText, service.summary]
     .filter((text): text is string => Boolean(text))
-    .some((text) => text.includes(residenceSidoName));
+    .some((text) => text.includes(input.residenceSidoName!));
 }
 
 function compactText(value: string, maxLength: number): string {
@@ -188,12 +250,24 @@ export function recommendGov24Services(
   return services
     .flatMap((service) => {
       if (!isPersonalAudience(service.audienceType)) return [];
-      if (!matchesResidence(service, input.residenceSidoName)) return [];
+      if (!matchesResidence(service, input)) return [];
+
+      const textMatch = matchGov24TextEligibility(
+        parseGov24TextEligibility(service),
+        input,
+      );
+      if (textMatch.status === "unlikely") return [];
 
       const match = matchGov24Eligibility(service.eligibilityProfile, input);
       if (match.status === "unlikely") return [];
 
-      const additionalChecks = [...match.additionalChecks];
+      const reasons = [...textMatch.reasons, ...match.reasons];
+      if (reasons.length === 0) return [];
+
+      const additionalChecks = [
+        ...textMatch.additionalChecks,
+        ...match.additionalChecks,
+      ];
       additionalChecks.push("정확한 세부 선정기준은 공식 원문에서 확인해주세요.");
 
       return [
@@ -211,12 +285,9 @@ export function recommendGov24Services(
           scope: service.scope,
           detailUrl: service.detailUrl,
           onlineApplicationUrl: service.onlineApplicationUrl,
-          reasons:
-            match.reasons.length > 0
-              ? match.reasons
-              : ["정부24 구조화 조건에서 입력 정보와 충돌하는 항목이 없습니다."],
+          reasons,
           additionalChecks,
-          score: match.score,
+          score: Math.max(0, reasons.length * 20 - additionalChecks.length * 3),
         },
       ];
     })
