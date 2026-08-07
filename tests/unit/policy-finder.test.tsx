@@ -248,5 +248,6 @@ describe("PolicyFinder", () => {
     );
     expect(sent).not.toHaveProperty("birthDate");
     expect(sent).not.toHaveProperty("applicantIncomeAnnual");
+    expect(sent.applicantMonthlyIncomeWon).toBeCloseTo(3_333_333.33, 1);
   });
 });

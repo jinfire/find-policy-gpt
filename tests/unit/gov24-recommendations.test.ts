@@ -44,6 +44,7 @@ describe("정부24 전체 정책 추천", () => {
         age: 30,
         gender: "female",
         householdMedianIncomeRatio: 84.7,
+        applicantMonthlyIncomeWon: 3_333_333,
         householdSize: 3,
         childCount: 2,
         hasChildren: true,
@@ -64,6 +65,7 @@ describe("정부24 전체 정책 추천", () => {
       age: 30,
       gender: "female",
       householdMedianIncomeRatio: 84.7,
+      applicantMonthlyIncomeWon: 3_333_333,
       householdSize: 3,
       childCount: 2,
       hasChildren: true,
@@ -342,6 +344,34 @@ describe("정부24 전체 정책 추천", () => {
         residenceSidoName: "서울",
       }),
     ).toHaveLength(1);
+  });
+
+  it("월평균보수 상한이 있는 정책은 연소득 월 환산액으로 제외한다", () => {
+    const socialInsurance = service({
+      id: "gov24:social-insurance-gap",
+      name: "사회보험사각지대해소",
+      targetText:
+        "10인 미만 사업의 월 평균보수 270만 원 미만 근로자 및 사업주",
+      criteriaText: "월평균보수 270만원 미만 근로자",
+      eligibilityProfile: parseGov24Eligibility({ JA0326: "Y" }),
+    });
+
+    expect(
+      recommendGov24Services([socialInsurance], {
+        age: 35,
+        occupation: "employee",
+        applicantMonthlyIncomeWon: 2_700_000,
+        residenceSidoName: "서울",
+      }),
+    ).toHaveLength(0);
+    expect(
+      recommendGov24Services([socialInsurance], {
+        age: 35,
+        occupation: "employee",
+        applicantMonthlyIncomeWon: 2_699_999,
+        residenceSidoName: "서울",
+      })[0].reasons,
+    ).toContain("연소득 월 환산액이 월평균보수 270만원 미만 조건과 일치합니다.");
   });
 
   it("긴 정부 원문은 결과 카드용 길이로 줄여 반환한다", () => {

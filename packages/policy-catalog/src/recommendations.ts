@@ -155,6 +155,11 @@ export function parseGov24RecommendationInput(value: unknown): Gov24Recommendati
     "기준 중위소득 비율",
     { max: 10_000 },
   );
+  const applicantMonthlyIncomeWon = optionalNumber(
+    input.applicantMonthlyIncomeWon,
+    "월 환산 소득",
+    { max: 10_000_000_000 },
+  );
   const householdSize = optionalNumber(input.householdSize, "가구원 수", {
     integer: true,
     max: 100,
@@ -197,6 +202,9 @@ export function parseGov24RecommendationInput(value: unknown): Gov24Recommendati
     ...(gender ? { gender: gender as Gov24Gender } : {}),
     ...(householdMedianIncomeRatio !== undefined
       ? { householdMedianIncomeRatio }
+      : {}),
+    ...(applicantMonthlyIncomeWon !== undefined
+      ? { applicantMonthlyIncomeWon }
       : {}),
     ...(householdSize !== undefined ? { householdSize } : {}),
     ...(childCount !== undefined ? { childCount } : {}),

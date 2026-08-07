@@ -40,6 +40,7 @@ export type Gov24MatchInput = {
   age: number;
   gender?: Gov24Gender;
   householdMedianIncomeRatio?: number;
+  applicantMonthlyIncomeWon?: number;
   householdSize?: number;
   childCount?: number;
   hasChildren?: boolean;

@@ -3,6 +3,8 @@ import type { Gov24MatchInput } from "./eligibility";
 export type Gov24TextEligibilityConstraints = {
   minChildCount?: number;
   minResidenceMonths?: number;
+  maxMonthlyIncomeWon?: number;
+  maxMonthlyIncomeInclusive?: boolean;
   requiresAdoptedChild: boolean;
   requiresEducationEmployee: boolean;
   requiresPrivateSchoolEmployee: boolean;
@@ -66,6 +68,27 @@ function residenceThreshold(text: string): number | undefined {
   return minimum(values);
 }
 
+function monthlyIncomeCeiling(
+  text: string,
+): { won: number; inclusive: boolean } | undefined {
+  const ceilings: Array<{ won: number; inclusive: boolean }> = [];
+  for (const match of text.matchAll(
+    /월\s*평균\s*보수(?:액)?\s*([\d,]+)\s*만\s*원\s*(미만|이하)/g,
+  )) {
+    const amountInManwon = Number(match[1].replaceAll(",", ""));
+    if (amountInManwon > 0 && amountInManwon <= 100_000) {
+      ceilings.push({
+        won: amountInManwon * 10_000,
+        inclusive: match[2] === "이하",
+      });
+    }
+  }
+  return ceilings.sort(
+    (left, right) =>
+      left.won - right.won || Number(left.inclusive) - Number(right.inclusive),
+  )[0];
+}
+
 export function parseGov24TextEligibility(
   source: TextConstraintSource,
 ): Gov24TextEligibilityConstraints {
@@ -90,6 +113,7 @@ export function parseGov24TextEligibility(
     /(?:대상|신청자|재직).{0,30}(?:교직원|교원|교사)|(?:교직원|교원|교사).{0,30}(?:재직|대상|신청)/.test(
       educationEmployeeText,
     );
+  const monthlyIncome = monthlyIncomeCeiling(eligibilityText);
 
   return {
     ...(childThreshold(eligibilityText) !== undefined
@@ -97,6 +121,12 @@ export function parseGov24TextEligibility(
       : {}),
     ...(residenceThreshold(eligibilityText) !== undefined
       ? { minResidenceMonths: residenceThreshold(eligibilityText) }
+      : {}),
+    ...(monthlyIncome
+      ? {
+          maxMonthlyIncomeWon: monthlyIncome.won,
+          maxMonthlyIncomeInclusive: monthlyIncome.inclusive,
+        }
       : {}),
     requiresAdoptedChild: adoptionOnlyName || adoptionOnlyTarget,
     requiresEducationEmployee: educationEmployee,
@@ -136,6 +166,26 @@ export function matchGov24TextEligibility(
     } else {
       reasons.push(
         `현재 지역 거주기간이 ${constraints.minResidenceMonths}개월 이상 조건과 일치합니다.`,
+      );
+    }
+  }
+
+  if (constraints.maxMonthlyIncomeWon !== undefined) {
+    const ceiling = constraints.maxMonthlyIncomeWon;
+    const label = `${ceiling / 10_000}만원 ${
+      constraints.maxMonthlyIncomeInclusive ? "이하" : "미만"
+    }`;
+    if (input.applicantMonthlyIncomeWon === undefined) {
+      additionalChecks.push(`월평균보수가 ${label}인지 확인해주세요.`);
+    } else {
+      const exceeds = constraints.maxMonthlyIncomeInclusive
+        ? input.applicantMonthlyIncomeWon > ceiling
+        : input.applicantMonthlyIncomeWon >= ceiling;
+      if (exceeds) {
+        return { status: "unlikely", reasons: [], additionalChecks: [] };
+      }
+      reasons.push(
+        `연소득 월 환산액이 월평균보수 ${label} 조건과 일치합니다.`,
       );
     }
   }

@@ -364,6 +364,7 @@ export function PolicyFinder() {
     const profile = buildProfile(form);
     const derived = deriveProfile(profile);
     const childCount = Number(form.childCount);
+    const applicantIncomeAnnual = won(form.applicantIncome);
     setResults(recommendPolicies(profile));
     setCatalogMatch({ status: "loading" });
 
@@ -372,6 +373,9 @@ export function PolicyFinder() {
       ...(form.gender ? { gender: form.gender } : {}),
       ...(derived.householdMedianIncomeRatio !== undefined
         ? { householdMedianIncomeRatio: derived.householdMedianIncomeRatio }
+        : {}),
+      ...(applicantIncomeAnnual !== undefined
+        ? { applicantMonthlyIncomeWon: applicantIncomeAnnual / 12 }
         : {}),
       householdSize: Number(form.householdSize),
       childCount,
