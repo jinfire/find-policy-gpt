@@ -529,7 +529,7 @@ export function PolicyFinder() {
             <fieldset>
               <legend>본인과 거주 지역을<br />알려주세요</legend>
               <label>생년월일
-                <input type="text" inputMode="numeric" pattern="\d{4}-\d{2}-\d{2}" placeholder="예: 1992-05-10" required value={form.birthDate} onChange={(event) => update("birthDate", event.target.value)} />
+                <input type="date" required value={form.birthDate} onChange={(event) => update("birthDate", event.target.value)} />
               </label>
               <label>성별 <small>선택 · 일부 정책 조건 확인용</small>
                 <select value={form.gender} onChange={(event) => update("gender", event.target.value as FormState["gender"])}>
@@ -560,10 +560,10 @@ export function PolicyFinder() {
                 </select>
               </label>
               {form.maritalStatus === "married" && (
-                <label>혼인신고일<input type="text" inputMode="numeric" pattern="\d{4}-\d{2}-\d{2}" placeholder="예: 2024-04-20" required value={form.marriageDate} onChange={(event) => update("marriageDate", event.target.value)} /></label>
+                <label>혼인신고일<input type="date" required value={form.marriageDate} onChange={(event) => update("marriageDate", event.target.value)} /></label>
               )}
               {form.maritalStatus === "planned" && (
-                <label>결혼 예정일<input type="text" inputMode="numeric" pattern="\d{4}-\d{2}-\d{2}" placeholder="예: 2026-09-30" required value={form.plannedMarriageDate} onChange={(event) => update("plannedMarriageDate", event.target.value)} /></label>
+                <label>결혼 예정일<input type="date" required value={form.plannedMarriageDate} onChange={(event) => update("plannedMarriageDate", event.target.value)} /></label>
               )}
               <button type="button" className="primary-button" onClick={(event) => { if (event.currentTarget.form?.reportValidity()) setStep(2); }}>다음</button>
             </fieldset>
@@ -581,7 +581,7 @@ export function PolicyFinder() {
               <label>총 자녀 수<input type="number" min="0" max="20" step="1" required value={form.childCount} onChange={(event) => update("childCount", event.target.value)} /></label>
               {childCount > 0 && (
                 <div className="conditional stacked">
-                  <label>가장 어린 자녀 생년월일<input type="text" inputMode="numeric" pattern="\d{4}-\d{2}-\d{2}" placeholder="예: 2025-12-15" required value={form.childBirthDate} onChange={(event) => update("childBirthDate", event.target.value)} /></label>
+                  <label>가장 어린 자녀 생년월일<input type="date" required value={form.childBirthDate} onChange={(event) => update("childBirthDate", event.target.value)} /></label>
                   <label className="check-label"><input type="checkbox" checked={form.hasAdoptedChild} onChange={(event) => update("hasAdoptedChild", event.target.checked)} />입양한 자녀가 있어요</label>
                 </div>
               )}

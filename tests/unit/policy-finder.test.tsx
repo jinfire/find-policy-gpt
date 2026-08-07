@@ -83,6 +83,30 @@ describe("PolicyFinder", () => {
     vi.unstubAllGlobals();
   });
 
+  it("모든 날짜 항목을 달력 선택 입력으로 제공한다", async () => {
+    const user = userEvent.setup();
+    render(<PolicyFinder />);
+
+    expect(screen.getByLabelText("생년월일")).toHaveAttribute("type", "date");
+
+    await user.selectOptions(screen.getByLabelText("혼인 상태"), "married");
+    expect(screen.getByLabelText("혼인신고일")).toHaveAttribute("type", "date");
+
+    await user.selectOptions(screen.getByLabelText("혼인 상태"), "planned");
+    expect(screen.getByLabelText("결혼 예정일")).toHaveAttribute("type", "date");
+
+    await user.selectOptions(screen.getByLabelText("혼인 상태"), "single");
+    await user.type(screen.getByLabelText("생년월일"), "1992-05-10");
+    await user.click(screen.getByRole("button", { name: "다음" }));
+    await user.clear(screen.getByLabelText("총 자녀 수"));
+    await user.type(screen.getByLabelText("총 자녀 수"), "1");
+
+    expect(screen.getByLabelText("가장 어린 자녀 생년월일")).toHaveAttribute(
+      "type",
+      "date",
+    );
+  });
+
   it("중위소득은 입력 중 숨기고 결과 화면에서만 보여준다", async () => {
     const user = userEvent.setup();
     render(<PolicyFinder />);
